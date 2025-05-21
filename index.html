@@ -58,7 +58,7 @@
     background: #444;
     color: #fff;
   }
-  #result, #resultDetailed, #recordsList {
+  #result, #resultDetailed, #recordsList, #benchResults {
     margin-top: 30px;
     font-size: 1.3em;
     font-weight: 600;
@@ -153,13 +153,12 @@
   <h2>Меню</h2>
   <ul>
     <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
-    <li onclick="selectMode('bench')" >💪 Разовый жим лежа</li>
+    <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
     <li onclick="selectMode('records')">🏆 Личные рекорды</li>
   </ul>
 </div>
 
 <div id="modeContent">
-  <!-- Сюда будем подгружать содержимое режимов -->
 </div>
 
 <script>
@@ -200,20 +199,27 @@
         <p>Введите желаемый вес (в кг):</p>
         <input type="number" id="weightInput" min="${barWeight}" step="0.25" value="100" />
         <br/>
-        <button onclick="calculatePlates()">Рассчитать блины</button>
+        <button id="platesBtn">Рассчитать блины</button>
         <div id="warning"></div>
         <div id="result"></div>
         <div id="resultDetailed"></div>
       `;
+      document.getElementById('platesBtn').addEventListener('click', calculatePlates);
     } else if(currentMode === 'bench'){
       container.innerHTML = `
-        <h1>Разовый максимум в жиме лёжа (будет позже)</h1>
-        <p>Здесь будет калькулятор разового максимума по формулам</p>
+        <h1>Расчёт разового максимума в жиме лёжа</h1>
+        <label>Вес штанги в жиме лёжа: </label><br/>
+        <input type="number" id="benchWeight" min="1" step="0.1" value="50" /> кг<br/><br/>
+        <label>Количество повторений с этим весом: </label><br/>
+        <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /> раз<br/><br/>
+        <button id="benchBtn">Рассчитать</button>
+        <div id="benchResults"></div>
       `;
+      document.getElementById('benchBtn').addEventListener('click', calculateBenchMax);
     } else if(currentMode === 'records'){
       container.innerHTML = `
         <h1>Личные рекорды</h1>
-        <form id="recordForm" onsubmit="saveRecord(event)">
+        <form id="recordForm">
           <input type="text" id="name" placeholder="Ваше имя" required />
           <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" required />
           <select id="exerciseType">
@@ -226,6 +232,7 @@
         </form>
         <div id="recordsList"></div>
       `;
+      document.getElementById('recordForm').onsubmit = saveRecord;
       loadRecords();
     }
   }
@@ -235,101 +242,125 @@
     document.getElementById('result').textContent = "";
     document.getElementById('resultDetailed').textContent = "";
 
-    let desiredWeight = parseFloat(document.getElementById('weightInput').value);
-
-    if (isNaN(desiredWeight)) {
-      document.getElementById('warning').textContent = "Введите число";
-      return;
-    }
-    if (desiredWeight < barWeight) {
-      document.getElementById('warning').textContent = "Вес должен быть не меньше 20 кг (вес штанги)";
+    let target = parseFloat(document.getElementById('weightInput').value);
+    if (isNaN(target) || target < barWeight) {
+      document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
       return;
     }
 
-    let weightPerSide = (desiredWeight - barWeight) / 2;
-    if (weightPerSide < 0) {
-      document.getElementById('warning').textContent = "Вес меньше веса штанги";
+    let platesToUse = (target - barWeight) / 2;
+    if (platesToUse < 0) {
+      document.getElementById('warning').textContent = `Вес должен быть не меньше ${barWeight} кг (сам гриф).`;
       return;
     }
 
-    let platesPerSide = [];
-    let remaining = weightPerSide;
-
-    for (let plate of plates) {
-      let count = 0;
-      while (remaining >= plate - 0.0001 && count < maxPlatesPerType) {
-        platesPerSide.push(plate);
-        remaining -= plate;
-        count++;
-      }
-    }
-
-    if (remaining > 0.01) {
-      document.getElementById('warning').textContent = "Невозможно точно собрать этот вес блинами.";
-    }
-
-    if (platesPerSide.length === 0) {
-      document.getElementById('warning').textContent = "Для выбранного веса не нужны блины, хватит штанги.";
-      return;
-    }
-
-    const simpleOutput = platesPerSide.join(",") + " - " + platesPerSide.join(",");
-    document.getElementById('result').textContent = simpleOutput;
-
-    let counts = {};
-    platesPerSide.forEach(p => counts[p] = (counts[p] || 0) + 1);
-
-    let detailedLeft = [];
+    let plateCounts = {};
     for (let p of plates) {
-      if (counts[p]) {
-        detailedLeft.push(`${counts[p]}×${p} кг`);
+      plateCounts[p] = 0;
+    }
+
+    for (let p of plates) {
+      while (platesToUse >= p - 0.0001 && plateCounts[p] < maxPlatesPerType) {
+        platesToUse -= p;
+        platesToUse = Math.round(platesToUse * 100) / 100; // избегаем погрешностей
+        plateCounts[p]++;
       }
     }
-    const detailedOutput = "Левая сторона: " + detailedLeft.join(", ") + "\nПравая сторона: " + detailedLeft.join(", ");
-    document.getElementById('resultDetailed').textContent = detailedOutput;
+
+    if (platesToUse > 0.001) {
+      document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес с текущими блинами (ограничение 7 блинов каждого типа).";
+    }
+
+    let resultText = `Для веса ${target} кг наденьте на каждую сторону штанги:\n`;
+    for (let p of plates) {
+      if (plateCounts[p] > 0) {
+        resultText += `${plateCounts[p]} x ${p} кг\n`;
+      }
+    }
+    if(Object.values(plateCounts).every(c => c === 0)) {
+      resultText += 'Только гриф (20 кг)';
+    }
+
+    document.getElementById('result').textContent = resultText;
   }
 
-  // Локальное хранение рекордов
-  function saveRecord(event){
+  function calculateBenchMax() {
+    const M = parseFloat(document.getElementById('benchWeight').value);
+    const k = parseInt(document.getElementById('benchReps').value);
+    if (isNaN(M) || isNaN(k) || M <= 0 || k <= 0 || k > 20) {
+      alert('Введите корректные данные для веса и повторений (повторений от 1 до 20)');
+      return;
+    }
+
+    const e = Math.E;
+
+    const epley = (M * k) / 30 + M;
+    const brzycki = M * (36 / (37 - k));
+    const lander = (100 * M) / (101.3 - 2.67123 * k);
+    const lombardi = M * Math.pow(k, 0.10);
+    const mayhew = (100 * M) / (52.2 + 41.9 * Math.exp(-0.055 * k));
+    const oconner = M * (1 + 0.025 * k);
+    const wathan = (100 * M) / (48.8 + 53.8 * Math.exp(-0.075 * k));
+
+    const formulas = {Эпли: epley, Бжицки: brzycki, Лэндера: lander, Ломбарди: lombardi, Мэйхью: mayhew, "О'Коннор": oconner, Ватана: wathan};
+
+    let output = '';
+    for (const [name, val] of Object.entries(formulas)) {
+      output += `${name}: ${val.toFixed(2)} кг\n`;
+    }
+
+    const average = Object.values(formulas).reduce((a,b) => a+b, 0) / 7;
+    output += `\nСредний максимум: ${average.toFixed(2)} кг`;
+
+    document.getElementById('benchResults').textContent = output;
+  }
+
+  // --- Рекорды ---
+  function saveRecord(event) {
     event.preventDefault();
     const name = document.getElementById('name').value.trim();
     const weight = parseFloat(document.getElementById('recordWeight').value);
-    const exercise = document.getElementById('exerciseType').value;
-
-    if(!name || isNaN(weight) || weight <= 0){
-      alert("Пожалуйста, заполните все поля корректно.");
+    const type = document.getElementById('exerciseType').value;
+    if (!name || isNaN(weight) || weight <= 0) {
+      alert('Введите корректные данные.');
       return;
     }
 
-    let records = JSON.parse(localStorage.getItem('liftRecords') || "[]");
-
-    records.push({name, weight, exercise, date: new Date().toISOString()});
-    localStorage.setItem('liftRecords', JSON.stringify(records));
-
-    alert("Рекорд сохранён!");
-    document.getElementById('recordForm').reset();
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    records.push({name, weight, type, date: new Date().toISOString()});
+    localStorage.setItem('records', JSON.stringify(records));
     loadRecords();
+    document.getElementById('recordForm').reset();
   }
 
-  function loadRecords(){
-    let records = JSON.parse(localStorage.getItem('liftRecords') || "[]");
-    if(records.length === 0){
-      document.getElementById('recordsList').textContent = "Рекорды пока отсутствуют.";
+  function loadRecords() {
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    if (records.length === 0) {
+      document.getElementById('recordsList').textContent = 'Пока нет сохранённых рекордов.';
       return;
     }
-    // Сортируем по весу по убыванию
-    records.sort((a,b) => b.weight - a.weight);
-
-    let html = "<h3>Сохранённые рекорды:</h3><ul>";
-    for(let rec of records){
-      html += `<li><b>${rec.name}</b> — ${rec.weight} кг (${rec.exercise})</li>`;
+    // Группируем по типу и сортируем по весу
+    let grouped = {bench: [], squat: [], deadlift: []};
+    for (let r of records) {
+      if (grouped[r.type]) {
+        grouped[r.type].push(r);
+      }
     }
-    html += "</ul>";
-
-    document.getElementById('recordsList').innerHTML = html;
+    let output = '';
+    for (let key of ['bench', 'squat', 'deadlift']) {
+      output += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
+      if(grouped[key].length === 0) {
+        output += '<p>Нет записей.</p>';
+        continue;
+      }
+      grouped[key].sort((a,b) => b.weight - a.weight);
+      for (let r of grouped[key]) {
+        output += `<p>${r.name}: ${r.weight} кг (дата: ${new Date(r.date).toLocaleDateString()})</p>`;
+      }
+    }
+    document.getElementById('recordsList').innerHTML = output;
   }
 
-  // Инициализация: загрузим первый режим
   renderMode();
 </script>
 
