@@ -1,401 +1,448 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="icon.png" />
-<title>Калькулятор веса штанги</title>
-<style>
-  :root {
-    --bg-light: #fff;
-    --text-light: #000;
-    --bg-dark: #121212;
-    --text-dark: #eee;
-    --btn-bg-light: #000;
-    --btn-bg-dark: #eee;
-    --btn-text-light: #fff;
-    --btn-text-dark: #000;
-  }
-  body {
-    background: var(--bg-light);
-    color: var(--text-light);
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    text-align: center;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark {
-    background: var(--bg-dark);
-    color: var(--text-dark);
-  }
-  input[type=number], input[type=text] {
-    padding: 12px 16px;
-    font-size: 1.2em;
-    width: 220px;
-    border: 2px solid currentColor;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    outline: none;
-    background: transparent;
-    color: inherit;
-  }
-  button {
-    background: var(--btn-bg-light);
-    color: var(--btn-text-light);
-    border: none;
-    border-radius: 14px;
-    padding: 14px 28px;
-    font-size: 1.3em;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark button {
-    background: var(--btn-bg-dark);
-    color: var(--btn-text-dark);
-  }
-  button:hover {
-    background: #444;
-    color: #fff;
-  }
-  #result, #resultDetailed, #recordsList, #benchResults {
-    margin-top: 30px;
-    font-size: 1.3em;
-    font-weight: 600;
-    line-height: 1.4;
-    white-space: pre-wrap;
-  }
-  #warning {
-    margin-top: 15px;
-    color: #b00000;
-    font-weight: 700;
-  } 
-  /* Меню */
-  .menu-button {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    font-size: 28px;
-    cursor: pointer;
-    user-select: none;
-    z-index: 110;
-  }
-  #themeToggle {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    font-size: 24px;
-    cursor: pointer;
-    user-select: none;
-    z-index: 110;
-  }
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 240px;
-    height: 100%;
-    background: #eee;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-    padding: 20px;
-    box-sizing: border-box;
-    transition: left 0.3s;
-    z-index: 100;
-    overflow-y: auto;
-  }
-  body.dark #sidebar {
-    background: #222;
-    color: var(--text-dark);
-  }
-  #sidebar.open {
-    left: 0;
-  }
-  #sidebar h2 {
-    margin-top: 0;
-  }
-  #sidebar ul {
-    list-style: none;
-    padding: 0;
-  }
-  #sidebar ul li {
-    padding: 10px 5px;
-    cursor: pointer;
-    border-radius: 8px;
-  }
-  #sidebar ul li:hover:not(.disabled) {
-    background: #ccc;
-  }
-  #sidebar ul li.disabled {
-    color: #888;
-    cursor: default;
-  }
-  /* Отступ у заголовка, чтобы меню не накрывал */
-  h1 {
-    margin-top: 60px;
-  }
-  /* Скрывать disabled пункты курсор */
-  #sidebar ul li.disabled:hover {
-    background: none;
-  }
-  /* Форма рекордов */
-  #recordForm input, #recordForm select {
-    width: 180px;
-    margin: 5px;
-  }
-</style>
-</head>
-<body>
-
-<div class="menu-button" onclick="toggleMenu()">☰</div>
-<div id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌞</div>
-
-<div id="sidebar">
-  <h2>Меню</h2>
-  <ul>
-    <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
-    <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
-    <li onclick="selectMode('records')">🏆 Личные рекорды</li>
-  </ul>
-</div>
-
-<div id="modeContent">
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyD7ZdXxWmSmth10PB4g3kbXtMASa_yLQrw",
-    authDomain: "calculatorbench.firebaseapp.com",
-    projectId: "calculatorbench",
-    storageBucket: "calculatorbench.firebasestorage.app",
-    messagingSenderId: "79133455556",
-    appId: "1:79133455556:web:1ddc2a8df716d382fa4591"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
-
-<script>
-  const plates = [20, 15, 10, 5, 2.5, 1.25];
-  const maxPlatesPerType = 7;
-  const barWeight = 20;
-
-  let currentMode = 'plates';
-
-  function toggleMenu() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('open');
-  }
-
-  function toggleTheme() {
-    document.body.classList.toggle('dark');
-    const themeToggle = document.getElementById('themeToggle');
-    if(document.body.classList.contains('dark')){
-      themeToggle.textContent = '🌙';
-    } else {
-      themeToggle.textContent = '🌞';
+  <!DOCTYPE html>
+  <html lang="ru">
+  <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <title>Калькулятор веса штанги</title>
+  <style>
+    :root {
+      --bg-light: #fff;
+      --text-light: #000;
+      --bg-dark: #121212;
+      --text-dark: #eee;
+      --btn-bg-light: #000;
+      --btn-bg-dark: #eee;
+      --btn-text-light: #fff;
+      --btn-text-dark: #000;
     }
-  }
-
-  function selectMode(mode) {
-    currentMode = mode;
-    toggleMenu();
-    renderMode();
-  }
-
-  function renderMode() {
-    const container = document.getElementById('modeContent');
-    container.innerHTML = '';
-
-    if(currentMode === 'plates'){
-      container.innerHTML = `
-        <h1>Калькулятор веса штанги</h1>
-        <p>Введите желаемый вес (в кг):</p>
-        <input type="number" id="weightInput" min="${barWeight}" step="0.25" value="100" />
-        <br/>
-        <button id="platesBtn">Рассчитать блины</button>
-        <div id="warning"></div>
-        <div id="result"></div>
-        <div id="resultDetailed"></div>
-      `;
-      document.getElementById('platesBtn').addEventListener('click', calculatePlates);
-    } else if(currentMode === 'bench'){
-      container.innerHTML = `
-        <h1>Расчёт разового максимума в жиме лёжа</h1>
-        <label>Вес штанги в жиме лёжа: </label><br/>
-        <input type="number" id="benchWeight" min="1" step="0.1" value="50" /> кг<br/><br/>
-        <label>Количество повторений с этим весом: </label><br/>
-        <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /> раз<br/><br/>
-        <button id="benchBtn">Рассчитать</button>
-        <div id="benchResults"></div>
-      `;
-      document.getElementById('benchBtn').addEventListener('click', calculateBenchMax);
-    } else if(currentMode === 'records'){
-      container.innerHTML = `
-        <h1>Личные рекорды</h1>
-        <form id="recordForm">
-          <input type="text" id="name" placeholder="Ваше имя" required />
-          <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" required />
-          <select id="exerciseType">
-            <option value="bench">Жим лёжа</option>
-            <option value="squat">Присед</option>
-            <option value="deadlift">Становая тяга</option>
-          </select>
-          <br/>
-          <button type="submit">Сохранить рекорд</button>
-        </form>
-        <div id="recordsList"></div>
-      `;
-
-      document.getElementById('recordForm').onsubmit = saveRecord;
-      loadRecords();
+    body {
+      background: var(--bg-light);
+      color: var(--text-light);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
     }
-  }
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    input[type=number], input[type=text] {
+      padding: 12px 16px;
+      font-size: 1.2em;
+      width: 220px;
+      border: 2px solid currentColor;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      outline: none;
+      background: transparent;
+      color: inherit;
+    }
+    button {
+      background: var(--btn-bg-light);
+      color: var(--btn-text-light);
+      border: none;
+      border-radius: 14px;
+      padding: 14px 28px;
+      font-size: 1.3em;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark button {
+      background: var(--btn-bg-dark);
+      color: var(--btn-text-dark);
+    }
+    button:hover {
+      background: #444;
+      color: #fff;
+    }
+    #result, #resultDetailed, #recordsList, #benchResults {
+      margin-top: 30px;
+      font-size: 1.3em;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    #warning {
+      margin-top: 15px;
+      color: #b00000;
+      font-weight: 700;
+    } 
+    /* Меню */
+    .menu-button {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-size: 28px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 110;
+    }
+    #themeToggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 110;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 240px;
+      height: 100%;
+      background: #eee;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-sizing: border-box;
+      transition: left 0.3s;
+      z-index: 100;
+      overflow-y: auto;
+    }
+    body.dark #sidebar {
+      background: #222;
+      color: var(--text-dark);
+    }
+    #sidebar.open {
+      left: 0;
+    }
+    #sidebar h2 {
+      margin-top: 0;
+    }
+    #sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    #sidebar ul li {
+      padding: 10px 5px;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    #sidebar ul li:hover:not(.disabled) {
+      background: #ccc;
+    }
+    #sidebar ul li.disabled {
+      color: #888;
+      cursor: default;
+    }
+    /* Отступ у заголовка, чтобы меню не накрывал */
+    h1 {
+      margin-top: 60px;
+    }
+    /* Скрывать disabled пункты курсор */
+    #sidebar ul li.disabled:hover {
+      background: none;
+    }
+    /* Форма рекордов */
+    #recordForm input, #recordForm select {
+      width: 180px;
+      margin: 5px;
+    }
+  </style>
+  </head>
+  <body>
 
-  function calculatePlates() {
-    document.getElementById('warning').textContent = "";
-    document.getElementById('result').textContent = "";
-    document.getElementById('resultDetailed').textContent = "";
+  <div class="menu-button" onclick="toggleMenu()">☰</div>
+  <div id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌞</div>
 
-    let target = parseFloat(document.getElementById('weightInput').value);
-    if (isNaN(target) || target < barWeight) {
-      document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
-      return;
+  <div id="sidebar">
+    <h2>Меню</h2>
+    <ul>
+      <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
+      <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
+      <li onclick="selectMode('records')">🏆 Личные рекорды</li>
+    </ul>
+  </div>
+
+  <div id="modeContent">
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD7ZdXxWmSmth10PB4g3kbXtMASa_yLQrw",
+      authDomain: "calculatorbench.firebaseapp.com",
+      projectId: "calculatorbench",
+      storageBucket: "calculatorbench.firebasestorage.app",
+      messagingSenderId: "79133455556",
+      appId: "1:79133455556:web:1ddc2a8df716d382fa4591"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    const plates = [20, 15, 10, 5, 2.5, 1.25];
+    const maxPlatesPerType = 7;
+    const barWeight = 20;
+
+    let currentMode = 'plates';
+
+    function toggleMenu() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
     }
 
-    let platesToUse = (target - barWeight) / 2; // для каждой стороны
-    if (platesToUse < 0) {
-      document.getElementById('warning').textContent = "Вес меньше веса грифа!";
-      return;
-    }
-
-    let plateCount = {};
-    for (const plate of plates) {
-      plateCount[plate] = 0;
-    }
-
-    for (const plate of plates) {
-      while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
-        platesToUse -= plate;
-        plateCount[plate]++;
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+      const themeToggle = document.getElementById('themeToggle');
+      if(document.body.classList.contains('dark')){
+        themeToggle.textContent = '🌙';
+      } else {
+        themeToggle.textContent = '🌞';
       }
     }
 
-    if (platesToUse > 0.001) {
-      document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
+    function selectMode(mode) {
+      currentMode = mode;
+      toggleMenu();
+      renderMode();
     }
 
-    let result = Object.entries(plateCount)
-      .filter(([_, c]) => c > 0)
-      .map(([p, c]) => `${c} x ${p} кг`)
-      .join(", ");
+    function renderMode() {
+      const container = document.getElementById('modeContent');
+      container.innerHTML = '';
 
-    if (!result) result = "Только гриф — " + barWeight + " кг";
+      if(currentMode === 'plates'){
+        container.innerHTML = `
+          <h1>Калькулятор веса штанги</h1>
+          <p>Введите желаемый вес (в кг):</p>
+          <input type="number" id="weightInput" min="${barWeight}" step="0.25" value="100" />
+          <br/>
+          <button id="platesBtn">Рассчитать блины</button>
+          <div id="warning"></div>
+          <div id="result"></div>
+          <div id="resultDetailed"></div>
+        `;
+        document.getElementById('platesBtn').addEventListener('click', calculatePlates);
+      } else if(currentMode === 'bench'){
+        container.innerHTML = `
+          <h1>Расчёт разового максимума в жиме лёжа</h1>
+          <label>Вес штанги в жиме лёжа: </label><br/>
+          <input type="number" id="benchWeight" min="1" step="0.1" value="50" /> кг<br/><br/>
+          <label>Количество повторений с этим весом: </label><br/>
+          <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /> раз<br/><br/>
+          <button id="benchBtn">Рассчитать</button>
+          <div id="benchResults"></div>
+        `;
+        document.getElementById('benchBtn').addEventListener('click', calculateBenchMax);
+      } else if(currentMode === 'records'){
+        container.innerHTML = `
+          <h1>Личные рекорды</h1>
+          <form id="recordForm">
+            <input type="text" id="name" placeholder="Ваше имя" required />
+            <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" required />
+            <input type="number" id="bodyWeight" placeholder="Вес тела (кг)" min="1" required />
+            <select id="exerciseType">
+              <option value="bench">Жим лёжа</option>
+              <option value="squat">Присед</option>
+              <option value="deadlift">Становая тяга</option>
+            </select>
+            <br/>
+            <button type="submit">Сохранить рекорд</button>
+          </form>
+          <div id="recordsList"></div>
+        `;
+        
 
-    document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
-    document.getElementById('resultDetailed').textContent = `Общий вес: ${target} кг (гриф ${barWeight} кг + блины по обеим сторонам)`;
-  }
-
-  // Формулы расчёта 1ПМ в жиме лёжа
-  function calculateBenchMax() {
-    const weight = parseFloat(document.getElementById('benchWeight').value);
-    const reps = parseInt(document.getElementById('benchReps').value);
-    if(isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0){
-      alert('Введите корректные данные!');
-      return;
+        document.getElementById('recordForm').onsubmit = saveRecord;
+        loadRecords();
+      }
     }
 
-    const formulas = {
-      Epley: weight * (1 + reps / 30),
-      Lombardi: weight * Math.pow(reps, 0.10),
-      OConner: weight * (1 + reps / 40),
-      Mayhew: (100 * weight) / (52.2 + 41.9 * Math.exp(-0.055 * reps)),
-      Wathan: (100 * weight) / (48.8 + 53.8 * Math.exp(-0.075 * reps)),
-      Schwartz: weight * (1 + reps / 30),
-      Lander: (100 * weight) / (101.3 - 2.67123 * reps)
-    };
+    function calculatePlates() {
+      document.getElementById('warning').textContent = "";
+      document.getElementById('result').textContent = "";
+      document.getElementById('resultDetailed').textContent = "";
 
-    let resStr = "Расчёт одноповторного максимума (кг):\n";
-    for(const f in formulas){
-      resStr += `${f}: ${formulas[f].toFixed(1)}\n`;
-    }
-    document.getElementById('benchResults').textContent = resStr;
-  }
-
-  // Firestore — сохранить рекорд
-  async function saveRecord(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('name').value.trim();
-    const weight = parseFloat(document.getElementById('recordWeight').value);
-    const type = document.getElementById('exerciseType').value;
-
-    if (!name || isNaN(weight) || weight <= 0) {
-      alert('Введите корректные данные.');
-      return;
-    }
-
-    try {
-      await db.collection('records').add({
-        name,
-        weight,
-        type,
-        date: new Date().toISOString(),
-      });
-
-      alert('Рекорд успешно сохранён!');
-      document.getElementById('recordForm').reset();
-      loadRecords();
-    } catch (error) {
-      console.error('Ошибка при сохранении:', error);
-      alert('Ошибка при сохранении рекорда.');
-    }
-  }
-
-  // Firestore — загрузить рекорды
-  async function loadRecords() {
-    const container = document.getElementById('recordsList');
-    container.innerHTML = 'Загрузка...';
-
-    try {
-      const snapshot = await db.collection('records').orderBy('weight', 'desc').get();
-      const records = snapshot.docs.map(doc => doc.data());
-
-      if (records.length === 0) {
-        container.textContent = 'Пока нет сохранённых рекордов.';
+      let target = parseFloat(document.getElementById('weightInput').value);
+      if (isNaN(target) || target < barWeight) {
+        document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
         return;
       }
 
-      // Группируем по типу упражнения
-      const grouped = { bench: [], squat: [], deadlift: [] };
-      records.forEach(r => grouped[r.type]?.push(r));
+      let platesToUse = (target - barWeight) / 2; // для каждой стороны
+      if (platesToUse < 0) {
+        document.getElementById('warning').textContent = "Вес меньше веса грифа!";
+        return;
+      }
 
-      let output = '';
-      for (const key of ['bench', 'squat', 'deadlift']) {
-        output += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
-        if (!grouped[key].length) {
-          output += '<p>Нет записей.</p>';
-          continue;
-        }
-        for (const r of grouped[key]) {
-          const dateStr = new Date(r.date).toLocaleDateString();
-          output += `<p><b>${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+      let plateCount = {};
+      for (const plate of plates) {
+        plateCount[plate] = 0;
+      }
+
+      for (const plate of plates) {
+        while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
+          platesToUse -= plate;
+          plateCount[plate]++;
         }
       }
 
-      container.innerHTML = output;
-    } catch (error) {
-      console.error('Ошибка при загрузке рекордов:', error);
-      container.textContent = 'Ошибка при загрузке данных.';
+      if (platesToUse > 0.001) {
+        document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
+      }
+
+      let result = Object.entries(plateCount)
+        .filter(([_, c]) => c > 0)
+        .map(([p, c]) => `${c} x ${p} кг`)
+        .join(", ");
+
+      if (!result) result = "Только гриф — " + barWeight + " кг";
+
+      document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
+      document.getElementById('resultDetailed').textContent = `Общий вес: ${target} кг (гриф ${barWeight} кг + блины по обеим сторонам)`;
     }
+
+    // Формулы расчёта 1ПМ в жиме лёжа
+    function calculateBenchMax() {
+      const weight = parseFloat(document.getElementById('benchWeight').value);
+      const reps = parseInt(document.getElementById('benchReps').value);
+      if(isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0){
+        alert('Введите корректные данные!');
+        return;
+      }
+
+      const formulas = {
+        Epley: weight * (1 + reps / 30),
+        Lombardi: weight * Math.pow(reps, 0.10),
+        OConner: weight * (1 + reps / 40),
+        Mayhew: (100 * weight) / (52.2 + 41.9 * Math.exp(-0.055 * reps)),
+        Wathan: (100 * weight) / (48.8 + 53.8 * Math.exp(-0.075 * reps)),
+        Schwartz: weight * (1 + reps / 30),
+        Lander: (100 * weight) / (101.3 - 2.67123 * reps)
+      };
+
+      let resStr = "Расчёт одноповторного максимума (кг):\n";
+      for(const f in formulas){
+        resStr += `${f}: ${formulas[f].toFixed(1)}\n`;
+      }
+      document.getElementById('benchResults').textContent = resStr;
+    }
+
+    // Firestore — сохранить рекорд
+      async function saveRecord(e) {
+  e.preventDefault();  // чтобы форма не отправлялась и страница не перезагружалась
+
+  const name = document.getElementById('name').value.trim();
+  const weight = parseFloat(document.getElementById('recordWeight').value);
+  const bodyWeight = parseFloat(document.getElementById('bodyWeight').value);
+  const type = document.getElementById('exerciseType').value;
+
+  // Вот тут добавляем проверку:
+  if (!name || isNaN(weight) || weight <= 0 || isNaN(bodyWeight) || bodyWeight <= 0) {
+    alert('Пожалуйста, введите корректные данные для всех полей.');
+    return;  // прерываем функцию, если данные неверные
   }
 
-  // Инициализация страницы
-  selectMode(currentMode);
-</script>
+  // Далее идет код сохранения в базу
+  try {
+    await db.collection('records').add({
+      name,
+      weight,
+      bodyWeight,
+      type,
+      date: new Date().toISOString(),
+    });
+    alert('Рекорд успешно сохранён!');
+    // Очистка формы или обновление списка
+  } catch (error) {
+    alert('Ошибка при сохранении рекорда: ' + error.message);
+  }
+}
 
-</body>
-</html>
+    // Firestore — загрузить рекорды
+    async function loadRecords() {
+  const container = document.getElementById('recordsList');
+  container.innerHTML = 'Загрузка...';
+
+  try {
+    const snapshot = await db.collection('records').get();
+    const records = snapshot.docs.map(doc => doc.data());
+
+    if (records.length === 0) {
+      container.textContent = 'Пока нет сохранённых рекордов.';
+      return;
+    }
+
+    // Группируем по типу упражнения
+    const grouped = { bench: [], squat: [], deadlift: [] };
+    records.forEach(r => grouped[r.type]?.push(r));
+
+    let leftCol = '';
+    for (const key of ['bench', 'squat', 'deadlift']) {
+      leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
+      if (!grouped[key].length) {
+        leftCol += '<p>Нет записей.</p>';
+        continue;
+      }
+      for (const r of grouped[key]) {
+        const dateStr = new Date(r.date).toLocaleDateString();
+        leftCol += `<p><b>${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+      }
+    }
+
+    // 💪 Подсчёт сумм по именам с учетом веса тела
+    const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
+
+    for (const record of records) {
+      const { name, type, weight, bodyWeight } = record;
+      if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
+
+      // Запоминаем вес тела (берём последний непустой)
+      if (bodyWeight && bodyWeight > 0) {
+        totals[name].bodyWeight = bodyWeight;
+      }
+
+      // Только лучший результат по каждому упражнению
+      if (weight > (totals[name][type] || 0)) {
+        totals[name][type] = weight;
+      }
+    }
+
+    // Считаем суммы и проценты
+    const totalArray = Object.entries(totals).map(([name, lifts]) => {
+      const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
+      const bodyWeight = lifts.bodyWeight || 1; // чтобы не делить на 0
+      const percent = (total / bodyWeight) * 100;
+
+      return { name, total, percent };
+    });
+
+    // Сортировка по сумме
+    totalArray.sort((a, b) => b.total - a.total);
+
+    // Построим правую колонку с процентами
+    let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
+    totalArray.forEach((entry, index) => {
+      rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
+    });
+
+    // Выводим в две колонки
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: row; gap: 40px; justify-content: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">${leftCol}</div>
+        <div style="flex: 1; min-width: 300px;">${rightCol}</div>
+      </div>
+    `;
+
+  } catch (error) {
+    console.error('Ошибка при загрузке рекордов:', error);
+    container.textContent = 'Ошибка при загрузке данных.';
+  }
+}
+
+
+    // Инициализация страницы
+    selectMode(currentMode);
+  </script>
+
+  </body>
+  </html>
