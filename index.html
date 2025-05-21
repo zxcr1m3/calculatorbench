@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Калькулятор веса штанги</title>
+<style>
+  body {
+    background: #fff;
+    color: #000;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  input[type=number] {
+    padding: 12px 16px;
+    font-size: 1.2em;
+    width: 220px;
+    border: 2px solid #000;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    outline: none;
+  }
+  button {
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1.3em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background: #444;
+  }
+  #result, #resultDetailed {
+    margin-top: 30px;
+    font-size: 1.3em;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  #warning {
+    margin-top: 15px;
+    color: #b00000;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Калькулятор веса штанги</h1>
+  <p>Введите желаемый вес (в кг):</p>
+  <input type="number" id="weightInput" min="20" step="0.25" value="100" />
+  <br/>
+  <button onclick="calculatePlates()">Рассчитать блины</button>
+
+  <div id="warning"></div>
+  <div id="result"></div>
+  <div id="resultDetailed"></div>
+
+<script>
+  const plates = [20, 15, 10, 5, 2.5, 1.25];
+  const maxPlatesPerType = 7;
+  const barWeight = 20;
+
+  function calculatePlates() {
+    document.getElementById('warning').textContent = "";
+    document.getElementById('result').textContent = "";
+    document.getElementById('resultDetailed').textContent = "";
+
+    let desiredWeight = parseFloat(document.getElementById('weightInput').value);
+
+    if (isNaN(desiredWeight)) {
+      document.getElementById('warning').textContent = "Введите число";
+      return;
+    }
+    if (desiredWeight < barWeight) {
+      document.getElementById('warning').textContent = "Вес должен быть не меньше 20 кг (вес штанги)";
+      return;
+    }
+
+    let weightPerSide = (desiredWeight - barWeight) / 2;
+    if (weightPerSide < 0) {
+      document.getElementById('warning').textContent = "Вес меньше веса штанги";
+      return;
+    }
+
+    let platesPerSide = [];
+    let remaining = weightPerSide;
+
+    for (let plate of plates) {
+      let count = 0;
+      while (remaining >= plate - 0.0001 && count < maxPlatesPerType) {
+        platesPerSide.push(plate);
+        remaining -= plate;
+        count++;
+      }
+    }
+
+    if (remaining > 0.01) {
+      document.getElementById('warning').textContent = "Невозможно точно собрать этот вес блинами.";
+      // Можно предложить ближайший меньший вес
+    }
+
+    if (platesPerSide.length === 0) {
+      document.getElementById('warning').textContent = "Для выбранного веса не нужны блины, хватит штанги.";
+      return;
+    }
+
+    // Простой вывод: "20,20,2.5 - 20,20,2.5"
+    const simpleOutput = platesPerSide.join(",") + " - " + platesPerSide.join(",");
+    document.getElementById('result').textContent = simpleOutput;
+
+    // Подробный вывод с подсчетом: "2x20 кг, 1x2.5 кг"
+    let counts = {};
+    platesPerSide.forEach(p => counts[p] = (counts[p] || 0) + 1);
+
+    let detailedLeft = [];
+    for (let p of plates) {
+      if (counts[p]) {
+        detailedLeft.push(`${counts[p]}×${p} кг`);
+      }
+    }
+    const detailedOutput = "Левая сторона: " + detailedLeft.join(", ") + "\nПравая сторона: " + detailedLeft.join(", ");
+    document.getElementById('resultDetailed').textContent = detailedOutput;
+  }
+</script>
+
+</body>
+</html>
