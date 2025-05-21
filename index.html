@@ -69,7 +69,7 @@
     margin-top: 15px;
     color: #b00000;
     font-weight: 700;
-  }
+  } 
   /* Меню */
   .menu-button {
     position: fixed;
@@ -161,6 +161,23 @@
 <div id="modeContent">
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD7ZdXxWmSmth10PB4g3kbXtMASa_yLQrw",
+    authDomain: "calculatorbench.firebaseapp.com",
+    projectId: "calculatorbench",
+    storageBucket: "calculatorbench.firebasestorage.app",
+    messagingSenderId: "79133455556",
+    appId: "1:79133455556:web:1ddc2a8df716d382fa4591"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
 <script>
   const plates = [20, 15, 10, 5, 2.5, 1.25];
   const maxPlatesPerType = 7;
@@ -232,6 +249,7 @@
         </form>
         <div id="recordsList"></div>
       `;
+
       document.getElementById('recordForm').onsubmit = saveRecord;
       loadRecords();
     }
@@ -248,120 +266,135 @@
       return;
     }
 
-    let platesToUse = (target - barWeight) / 2;
+    let platesToUse = (target - barWeight) / 2; // для каждой стороны
     if (platesToUse < 0) {
-      document.getElementById('warning').textContent = `Вес должен быть не меньше ${barWeight} кг (сам гриф).`;
+      document.getElementById('warning').textContent = "Вес меньше веса грифа!";
       return;
     }
 
-    let plateCounts = {};
-    for (let p of plates) {
-      plateCounts[p] = 0;
+    let plateCount = {};
+    for (const plate of plates) {
+      plateCount[plate] = 0;
     }
 
-    for (let p of plates) {
-      while (platesToUse >= p - 0.0001 && plateCounts[p] < maxPlatesPerType) {
-        platesToUse -= p;
-        platesToUse = Math.round(platesToUse * 100) / 100; // избегаем погрешностей
-        plateCounts[p]++;
+    for (const plate of plates) {
+      while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
+        platesToUse -= plate;
+        plateCount[plate]++;
       }
     }
 
     if (platesToUse > 0.001) {
-      document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес с текущими блинами (ограничение 7 блинов каждого типа).";
+      document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
     }
 
-    let resultText = `Для веса ${target} кг наденьте на каждую сторону штанги:\n`;
-    for (let p of plates) {
-      if (plateCounts[p] > 0) {
-        resultText += `${plateCounts[p]} x ${p} кг\n`;
-      }
-    }
-    if(Object.values(plateCounts).every(c => c === 0)) {
-      resultText += 'Только гриф (20 кг)';
-    }
+    let result = Object.entries(plateCount)
+      .filter(([_, c]) => c > 0)
+      .map(([p, c]) => `${c} x ${p} кг`)
+      .join(", ");
 
-    document.getElementById('result').textContent = resultText;
+    if (!result) result = "Только гриф — " + barWeight + " кг";
+
+    document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
+    document.getElementById('resultDetailed').textContent = `Общий вес: ${target} кг (гриф ${barWeight} кг + блины по обеим сторонам)`;
   }
 
+  // Формулы расчёта 1ПМ в жиме лёжа
   function calculateBenchMax() {
-    const M = parseFloat(document.getElementById('benchWeight').value);
-    const k = parseInt(document.getElementById('benchReps').value);
-    if (isNaN(M) || isNaN(k) || M <= 0 || k <= 0 || k > 20) {
-      alert('Введите корректные данные для веса и повторений (повторений от 1 до 20)');
+    const weight = parseFloat(document.getElementById('benchWeight').value);
+    const reps = parseInt(document.getElementById('benchReps').value);
+    if(isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0){
+      alert('Введите корректные данные!');
       return;
     }
 
-    const e = Math.E;
+    const formulas = {
+      Epley: weight * (1 + reps / 30),
+      Lombardi: weight * Math.pow(reps, 0.10),
+      OConner: weight * (1 + reps / 40),
+      Mayhew: (100 * weight) / (52.2 + 41.9 * Math.exp(-0.055 * reps)),
+      Wathan: (100 * weight) / (48.8 + 53.8 * Math.exp(-0.075 * reps)),
+      Schwartz: weight * (1 + reps / 30),
+      Lander: (100 * weight) / (101.3 - 2.67123 * reps)
+    };
 
-    const epley = (M * k) / 30 + M;
-    const brzycki = M * (36 / (37 - k));
-    const lander = (100 * M) / (101.3 - 2.67123 * k);
-    const lombardi = M * Math.pow(k, 0.10);
-    const mayhew = (100 * M) / (52.2 + 41.9 * Math.exp(-0.055 * k));
-    const oconner = M * (1 + 0.025 * k);
-    const wathan = (100 * M) / (48.8 + 53.8 * Math.exp(-0.075 * k));
-
-    const formulas = {Эпли: epley, Бжицки: brzycki, Лэндера: lander, Ломбарди: lombardi, Мэйхью: mayhew, "О'Коннор": oconner, Ватана: wathan};
-
-    let output = '';
-    for (const [name, val] of Object.entries(formulas)) {
-      output += `${name}: ${val.toFixed(2)} кг\n`;
+    let resStr = "Расчёт одноповторного максимума (кг):\n";
+    for(const f in formulas){
+      resStr += `${f}: ${formulas[f].toFixed(1)}\n`;
     }
-
-    const average = Object.values(formulas).reduce((a,b) => a+b, 0) / 7;
-    output += `\nСредний максимум: ${average.toFixed(2)} кг`;
-
-    document.getElementById('benchResults').textContent = output;
+    document.getElementById('benchResults').textContent = resStr;
   }
 
-  // --- Рекорды ---
-  function saveRecord(event) {
-    event.preventDefault();
+  // Firestore — сохранить рекорд
+  async function saveRecord(e) {
+    e.preventDefault();
+
     const name = document.getElementById('name').value.trim();
     const weight = parseFloat(document.getElementById('recordWeight').value);
     const type = document.getElementById('exerciseType').value;
+
     if (!name || isNaN(weight) || weight <= 0) {
       alert('Введите корректные данные.');
       return;
     }
 
-    let records = JSON.parse(localStorage.getItem('records') || '[]');
-    records.push({name, weight, type, date: new Date().toISOString()});
-    localStorage.setItem('records', JSON.stringify(records));
-    loadRecords();
-    document.getElementById('recordForm').reset();
+    try {
+      await db.collection('records').add({
+        name,
+        weight,
+        type,
+        date: new Date().toISOString(),
+      });
+
+      alert('Рекорд успешно сохранён!');
+      document.getElementById('recordForm').reset();
+      loadRecords();
+    } catch (error) {
+      console.error('Ошибка при сохранении:', error);
+      alert('Ошибка при сохранении рекорда.');
+    }
   }
 
-  function loadRecords() {
-    let records = JSON.parse(localStorage.getItem('records') || '[]');
-    if (records.length === 0) {
-      document.getElementById('recordsList').textContent = 'Пока нет сохранённых рекордов.';
-      return;
-    }
-    // Группируем по типу и сортируем по весу
-    let grouped = {bench: [], squat: [], deadlift: []};
-    for (let r of records) {
-      if (grouped[r.type]) {
-        grouped[r.type].push(r);
+  // Firestore — загрузить рекорды
+  async function loadRecords() {
+    const container = document.getElementById('recordsList');
+    container.innerHTML = 'Загрузка...';
+
+    try {
+      const snapshot = await db.collection('records').orderBy('weight', 'desc').get();
+      const records = snapshot.docs.map(doc => doc.data());
+
+      if (records.length === 0) {
+        container.textContent = 'Пока нет сохранённых рекордов.';
+        return;
       }
-    }
-    let output = '';
-    for (let key of ['bench', 'squat', 'deadlift']) {
-      output += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
-      if(grouped[key].length === 0) {
-        output += '<p>Нет записей.</p>';
-        continue;
+
+      // Группируем по типу упражнения
+      const grouped = { bench: [], squat: [], deadlift: [] };
+      records.forEach(r => grouped[r.type]?.push(r));
+
+      let output = '';
+      for (const key of ['bench', 'squat', 'deadlift']) {
+        output += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
+        if (!grouped[key].length) {
+          output += '<p>Нет записей.</p>';
+          continue;
+        }
+        for (const r of grouped[key]) {
+          const dateStr = new Date(r.date).toLocaleDateString();
+          output += `<p><b>${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+        }
       }
-      grouped[key].sort((a,b) => b.weight - a.weight);
-      for (let r of grouped[key]) {
-        output += `<p>${r.name}: ${r.weight} кг (дата: ${new Date(r.date).toLocaleDateString()})</p>`;
-      }
+
+      container.innerHTML = output;
+    } catch (error) {
+      console.error('Ошибка при загрузке рекордов:', error);
+      container.textContent = 'Ошибка при загрузке данных.';
     }
-    document.getElementById('recordsList').innerHTML = output;
   }
 
-  renderMode();
+  // Инициализация страницы
+  selectMode(currentMode);
 </script>
 
 </body>
