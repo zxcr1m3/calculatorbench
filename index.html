@@ -1,68 +1,157 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
-<title>Калькулятор веса штанги</title>
-<style>
-  body {
-    background: #fff;
-    color: #000;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    text-align: center;
-  }
-  input[type=number] {
-    padding: 12px 16px;
-    font-size: 1.2em;
-    width: 220px;
-    border: 2px solid #000;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    outline: none;
-  }
-  button {
-    background: #000;
-    color: #fff;
-    border: none;
-    border-radius: 14px;
-    padding: 14px 28px;
-    font-size: 1.3em;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  button:hover {
-    background: #444;
-  }
-  #result, #resultDetailed {
-    margin-top: 30px;
-    font-size: 1.3em;
-    font-weight: 600;
-    line-height: 1.4;
-    white-space: pre-wrap;
-  }
-  #warning {
-    margin-top: 15px;
-    color: #b00000;
-    font-weight: 700;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>Калькулятор веса штанги</title>
+  <style>
+    body {
+      background: #fff;
+      color: #000;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .menu-button {
+      font-size: 2em;
+      cursor: pointer;
+      padding: 10px;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+    #sidebar {
+      position: fixed;
+      left: -260px;
+      top: 0;
+      width: 250px;
+      height: 100%;
+      background: #f0f0f0;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      padding: 20px;
+      transition: left 0.3s;
+      z-index: 999;
+    }
+    #sidebar.show {
+      left: 0;
+    }
+    #sidebar h2 {
+      margin-top: 0;
+    }
+    #sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    #sidebar li {
+      padding: 10px 0;
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+    #sidebar li.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    input[type=number] {
+      padding: 12px 16px;
+      font-size: 1.2em;
+      width: 220px;
+      border: 2px solid #000;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+
+    button {
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 28px;
+      font-size: 1.3em;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    #result, #resultDetailed, #benchResults {
+      margin-top: 30px;
+      font-size: 1.3em;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    #warning {
+      margin-top: 15px;
+      color: #b00000;
+      font-weight: 700;
+    }
+  </style>
 </head>
 <body>
 
+<div class="menu-button" onclick="toggleMenu()">☰</div>
+
+<div id="sidebar">
+  <h2>Меню</h2>
+  <ul>
+    <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
+    <li onclick="selectMode('bench')">💪 Жим на раз</li>
+  </ul>
+</div>
+
+<div id="platesSection" class="section active">
   <h1>Калькулятор веса штанги</h1>
   <p>Введите желаемый вес (в кг):</p>
   <input type="number" id="weightInput" min="20" step="0.25" value="100" />
   <br/>
   <button onclick="calculatePlates()">Рассчитать блины</button>
-
   <div id="warning"></div>
   <div id="result"></div>
   <div id="resultDetailed"></div>
+</div>
+
+<div id="benchSection" class="section">
+  <h1>Жим на раз</h1>
+  <p>Введите вес (в кг), который вы жали:</p>
+  <input type="number" id="benchWeight" min="1" step="0.5" value="100" />
+  <p>Количество повторений:</p>
+  <input type="number" id="benchReps" min="1" step="1" value="10" />
+  <br/>
+  <button onclick="calculateBenchMax()">Рассчитать максимум</button>
+  <div id="benchResults"></div>
+</div>
 
 <script>
+  function toggleMenu() {
+    document.getElementById("sidebar").classList.toggle("show");
+  }
+
+  function selectMode(mode) {
+    document.getElementById("sidebar").classList.remove("show");
+    document.querySelectorAll('.section').forEach(s => s.classList.remove("active"));
+    if (mode === 'plates') {
+      document.getElementById('platesSection').classList.add("active");
+    } else {
+      document.getElementById('benchSection').classList.add("active");
+    }
+  }
+
   const plates = [20, 15, 10, 5, 2.5, 1.25];
   const maxPlatesPerType = 7;
   const barWeight = 20;
@@ -103,7 +192,6 @@
 
     if (remaining > 0.01) {
       document.getElementById('warning').textContent = "Невозможно точно собрать этот вес блинами.";
-      // Можно предложить ближайший меньший вес
     }
 
     if (platesPerSide.length === 0) {
@@ -111,11 +199,9 @@
       return;
     }
 
-    // Простой вывод: "20,20,2.5 - 20,20,2.5"
     const simpleOutput = platesPerSide.join(",") + " - " + platesPerSide.join(",");
     document.getElementById('result').textContent = simpleOutput;
 
-    // Подробный вывод с подсчетом: "2x20 кг, 1x2.5 кг"
     let counts = {};
     platesPerSide.forEach(p => counts[p] = (counts[p] || 0) + 1);
 
@@ -127,6 +213,33 @@
     }
     const detailedOutput = "Левая сторона: " + detailedLeft.join(", ") + "\nПравая сторона: " + detailedLeft.join(", ");
     document.getElementById('resultDetailed').textContent = detailedOutput;
+  }
+
+  function calculateBenchMax() {
+    const M = parseFloat(document.getElementById("benchWeight").value);
+    const k = parseInt(document.getElementById("benchReps").value);
+
+    if (isNaN(M) || isNaN(k) || M <= 0 || k <= 0) {
+      document.getElementById("benchResults").textContent = "Введите корректные значения.";
+      return;
+    }
+
+    const results = [
+      { name: "Эпли",       value: M * (1 + k / 30) },
+      { name: "Бжицки",     value: M * (36 / (37 - k)) },
+      { name: "Ландер",     value: (100 * M) / (101.3 - 2.67123 * k) },
+      { name: "Ломбарди",   value: M * Math.pow(k, 0.10) },
+      { name: "Мэйхью",     value: (100 * M) / (52.2 + 41.9 * Math.exp(-0.055 * k)) },
+      { name: "О’Коннор",   value: M * (1 + 0.025 * k) },
+      { name: "Ватана",     value: M / (1.013 - 0.0267123 * k) },
+    ];
+
+    let text = "Максимум в жиме лёжа:\n\n";
+    results.forEach(r => {
+      text += `${r.name}: ${r.value.toFixed(1)} кг\n`;
+    });
+
+    document.getElementById("benchResults").textContent = text;
   }
 </script>
 
