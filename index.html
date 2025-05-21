@@ -1,169 +1,234 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon.png">
-  <title>Калькулятор веса штанги</title>
-  <style>
-body {
-  background: #fff;
-  color: #000;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  padding: 20px 20px 20px 60px; /* слева отступ под кнопку */
-}
-
-.menu-button {
-  font-size: 2em;
-  cursor: pointer;
-  padding: 10px;
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 2000; /* выше всего, чтобы не перекрывалось */
-  background: #fff; /* белый фон, чтобы не сливалась с меню */
-  border-radius: 8px;
-}
-
-#sidebar {
-  position: fixed;
-  left: -260px;
-  top: 0;
-  width: 250px;
-  height: 100%;
-  background: #f0f0f0;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-  padding: 70px 20px 20px; /* отступ сверху, чтобы текст не шёл под кнопку */
-  transition: left 0.3s;
-  z-index: 1000;
-}
-
-#sidebar.show {
-  left: 0;
-}
-
-#sidebar h2 {
-  margin-top: 0;
-}
-
-#sidebar ul {
-  list-style: none;
-  padding: 0;
-}
-
-#sidebar li {
-  padding: 10px 0;
-  cursor: pointer;
-  font-size: 1.2em;
-}
-
-#sidebar li.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.section {
-  display: none;
-}
-
-.section.active {
-  display: block;
-}
-
-input[type=number] {
-  padding: 12px 16px;
-  font-size: 1.2em;
-  width: 220px;
-  border: 2px solid #000;
-  border-radius: 14px;
-  margin-bottom: 20px;
-  outline: none;
-}
-
-button {
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 14px 28px;
-  font-size: 1.3em;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background: #444;
-}
-
-#result, #resultDetailed, #benchResults {
-  margin-top: 30px;
-  font-size: 1.3em;
-  font-weight: 600;
-  line-height: 1.4;
-  white-space: pre-wrap;
-}
-
-#warning {
-  margin-top: 15px;
-  color: #b00000;
-  font-weight: 700;
-}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon.png" />
+<title>Калькулятор веса штанги</title>
+<style>
+  :root {
+    --bg-light: #fff;
+    --text-light: #000;
+    --bg-dark: #121212;
+    --text-dark: #eee;
+    --btn-bg-light: #000;
+    --btn-bg-dark: #eee;
+    --btn-text-light: #fff;
+    --btn-text-dark: #000;
+  }
+  body {
+    background: var(--bg-light);
+    color: var(--text-light);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    text-align: center;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark {
+    background: var(--bg-dark);
+    color: var(--text-dark);
+  }
+  input[type=number], input[type=text] {
+    padding: 12px 16px;
+    font-size: 1.2em;
+    width: 220px;
+    border: 2px solid currentColor;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    outline: none;
+    background: transparent;
+    color: inherit;
+  }
+  button {
+    background: var(--btn-bg-light);
+    color: var(--btn-text-light);
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1.3em;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark button {
+    background: var(--btn-bg-dark);
+    color: var(--btn-text-dark);
+  }
+  button:hover {
+    background: #444;
+    color: #fff;
+  }
+  #result, #resultDetailed, #recordsList {
+    margin-top: 30px;
+    font-size: 1.3em;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  #warning {
+    margin-top: 15px;
+    color: #b00000;
+    font-weight: 700;
+  }
+  /* Меню */
+  .menu-button {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 28px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 110;
+  }
+  #themeToggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 110;
+  }
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px;
+    width: 240px;
+    height: 100%;
+    background: #eee;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    padding: 20px;
+    box-sizing: border-box;
+    transition: left 0.3s;
+    z-index: 100;
+    overflow-y: auto;
+  }
+  body.dark #sidebar {
+    background: #222;
+    color: var(--text-dark);
+  }
+  #sidebar.open {
+    left: 0;
+  }
+  #sidebar h2 {
+    margin-top: 0;
+  }
+  #sidebar ul {
+    list-style: none;
+    padding: 0;
+  }
+  #sidebar ul li {
+    padding: 10px 5px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  #sidebar ul li:hover:not(.disabled) {
+    background: #ccc;
+  }
+  #sidebar ul li.disabled {
+    color: #888;
+    cursor: default;
+  }
+  /* Отступ у заголовка, чтобы меню не накрывал */
+  h1 {
+    margin-top: 60px;
+  }
+  /* Скрывать disabled пункты курсор */
+  #sidebar ul li.disabled:hover {
+    background: none;
+  }
+  /* Форма рекордов */
+  #recordForm input, #recordForm select {
+    width: 180px;
+    margin: 5px;
+  }
+</style>
 </head>
 <body>
 
 <div class="menu-button" onclick="toggleMenu()">☰</div>
+<div id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌞</div>
 
 <div id="sidebar">
   <h2>Меню</h2>
   <ul>
     <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
-    <li onclick="selectMode('bench')">💪 Жим на раз</li>
+    <li onclick="selectMode('bench')" >💪 Разовый жим лежа</li>
+    <li onclick="selectMode('records')">🏆 Личные рекорды</li>
   </ul>
 </div>
 
-<div id="platesSection" class="section active">
-  <h1>Калькулятор веса штанги</h1>
-  <p>Введите желаемый вес (в кг):</p>
-  <input type="number" id="weightInput" min="20" step="0.25" value="100" />
-  <br/>
-  <button onclick="calculatePlates()">Рассчитать блины</button>
-  <div id="warning"></div>
-  <div id="result"></div>
-  <div id="resultDetailed"></div>
-</div>
-
-<div id="benchSection" class="section">
-  <h1>Жим на раз</h1>
-  <p>Введите вес (в кг), который вы жали:</p>
-  <input type="number" id="benchWeight" min="1" step="0.5" value="100" />
-  <p>Количество повторений:</p>
-  <input type="number" id="benchReps" min="1" step="1" value="10" />
-  <br/>
-  <button onclick="calculateBenchMax()">Рассчитать максимум</button>
-  <div id="benchResults"></div>
+<div id="modeContent">
+  <!-- Сюда будем подгружать содержимое режимов -->
 </div>
 
 <script>
-  function toggleMenu() {
-    document.getElementById("sidebar").classList.toggle("show");
-  }
-
-  function selectMode(mode) {
-    document.getElementById("sidebar").classList.remove("show");
-    document.querySelectorAll('.section').forEach(s => s.classList.remove("active"));
-    if (mode === 'plates') {
-      document.getElementById('platesSection').classList.add("active");
-    } else {
-      document.getElementById('benchSection').classList.add("active");
-    }
-  }
-
   const plates = [20, 15, 10, 5, 2.5, 1.25];
   const maxPlatesPerType = 7;
   const barWeight = 20;
+
+  let currentMode = 'plates';
+
+  function toggleMenu() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('open');
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+    const themeToggle = document.getElementById('themeToggle');
+    if(document.body.classList.contains('dark')){
+      themeToggle.textContent = '🌙';
+    } else {
+      themeToggle.textContent = '🌞';
+    }
+  }
+
+  function selectMode(mode) {
+    currentMode = mode;
+    toggleMenu();
+    renderMode();
+  }
+
+  function renderMode() {
+    const container = document.getElementById('modeContent');
+    container.innerHTML = '';
+
+    if(currentMode === 'plates'){
+      container.innerHTML = `
+        <h1>Калькулятор веса штанги</h1>
+        <p>Введите желаемый вес (в кг):</p>
+        <input type="number" id="weightInput" min="${barWeight}" step="0.25" value="100" />
+        <br/>
+        <button onclick="calculatePlates()">Рассчитать блины</button>
+        <div id="warning"></div>
+        <div id="result"></div>
+        <div id="resultDetailed"></div>
+      `;
+    } else if(currentMode === 'bench'){
+      container.innerHTML = `
+        <h1>Разовый максимум в жиме лёжа (будет позже)</h1>
+        <p>Здесь будет калькулятор разового максимума по формулам</p>
+      `;
+    } else if(currentMode === 'records'){
+      container.innerHTML = `
+        <h1>Личные рекорды</h1>
+        <form id="recordForm" onsubmit="saveRecord(event)">
+          <input type="text" id="name" placeholder="Ваше имя" required />
+          <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" required />
+          <select id="exerciseType">
+            <option value="bench">Жим лёжа</option>
+            <option value="squat">Присед</option>
+            <option value="deadlift">Становая тяга</option>
+          </select>
+          <br/>
+          <button type="submit">Сохранить рекорд</button>
+        </form>
+        <div id="recordsList"></div>
+      `;
+      loadRecords();
+    }
+  }
 
   function calculatePlates() {
     document.getElementById('warning').textContent = "";
@@ -224,32 +289,48 @@ button:hover {
     document.getElementById('resultDetailed').textContent = detailedOutput;
   }
 
-  function calculateBenchMax() {
-    const M = parseFloat(document.getElementById("benchWeight").value);
-    const k = parseInt(document.getElementById("benchReps").value);
+  // Локальное хранение рекордов
+  function saveRecord(event){
+    event.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const weight = parseFloat(document.getElementById('recordWeight').value);
+    const exercise = document.getElementById('exerciseType').value;
 
-    if (isNaN(M) || isNaN(k) || M <= 0 || k <= 0) {
-      document.getElementById("benchResults").textContent = "Введите корректные значения.";
+    if(!name || isNaN(weight) || weight <= 0){
+      alert("Пожалуйста, заполните все поля корректно.");
       return;
     }
 
-    const results = [
-      { name: "Эпли",       value: M * (1 + k / 30) },
-      { name: "Бжицки",     value: M * (36 / (37 - k)) },
-      { name: "Ландер",     value: (100 * M) / (101.3 - 2.67123 * k) },
-      { name: "Ломбарди",   value: M * Math.pow(k, 0.10) },
-      { name: "Мэйхью",     value: (100 * M) / (52.2 + 41.9 * Math.exp(-0.055 * k)) },
-      { name: "О’Коннор",   value: M * (1 + 0.025 * k) },
-      { name: "Ватана",     value: M / (1.013 - 0.0267123 * k) },
-    ];
+    let records = JSON.parse(localStorage.getItem('liftRecords') || "[]");
 
-    let text = "Максимум в жиме лёжа:\n\n";
-    results.forEach(r => {
-      text += `${r.name}: ${r.value.toFixed(1)} кг\n`;
-    });
+    records.push({name, weight, exercise, date: new Date().toISOString()});
+    localStorage.setItem('liftRecords', JSON.stringify(records));
 
-    document.getElementById("benchResults").textContent = text;
+    alert("Рекорд сохранён!");
+    document.getElementById('recordForm').reset();
+    loadRecords();
   }
+
+  function loadRecords(){
+    let records = JSON.parse(localStorage.getItem('liftRecords') || "[]");
+    if(records.length === 0){
+      document.getElementById('recordsList').textContent = "Рекорды пока отсутствуют.";
+      return;
+    }
+    // Сортируем по весу по убыванию
+    records.sort((a,b) => b.weight - a.weight);
+
+    let html = "<h3>Сохранённые рекорды:</h3><ul>";
+    for(let rec of records){
+      html += `<li><b>${rec.name}</b> — ${rec.weight} кг (${rec.exercise})</li>`;
+    }
+    html += "</ul>";
+
+    document.getElementById('recordsList').innerHTML = html;
+  }
+
+  // Инициализация: загрузим первый режим
+  renderMode();
 </script>
 
 </body>
