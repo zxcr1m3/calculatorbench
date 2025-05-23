@@ -1,148 +1,175 @@
-  <!DOCTYPE html>
-  <html lang="ru">
-  <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon.png" />
-  <title>Калькулятор веса штанги</title>
-  <style>
-    :root {
-      --bg-light: #fff;
-      --text-light: #000;
-      --bg-dark: #121212;
-      --text-dark: #eee;
-      --btn-bg-light: #000;
-      --btn-bg-dark: #eee;
-      --btn-text-light: #fff;
-      --btn-text-dark: #000;
-    }
-    body {
-      background: var(--bg-light);
-      color: var(--text-light);
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      padding: 20px;
-      text-align: center;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    body.dark {
-      background: var(--bg-dark);
-      color: var(--text-dark);
-    }
-    input[type=number], input[type=text] {
-      padding: 12px 16px;
-      font-size: 1.2em;
-      width: 220px;
-      border: 2px solid currentColor;
-      border-radius: 14px;
-      margin-bottom: 20px;
-      outline: none;
-      background: transparent;
-      color: inherit;
-    }
-    button {
-      background: var(--btn-bg-light);
-      color: var(--btn-text-light);
-      border: none;
-      border-radius: 14px;
-      padding: 14px 28px;
-      font-size: 1.3em;
-      cursor: pointer;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    body.dark button {
-      background: var(--btn-bg-dark);
-      color: var(--btn-text-dark);
-    }
-    button:hover {
-      background: #444;
-      color: #fff;
-    }
-    #result, #resultDetailed, #recordsList, #benchResults {
-      margin-top: 30px;
-      font-size: 1.3em;
-      font-weight: 600;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
-    #warning {
-      margin-top: 15px;
-      color: #b00000;
-      font-weight: 700;
-    } 
-    /* Меню */
-    .menu-button {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      font-size: 28px;
-      cursor: pointer;
-      user-select: none;
-      z-index: 110;
-    }
-    #themeToggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      font-size: 24px;
-      cursor: pointer;
-      user-select: none;
-      z-index: 110;
-    }
-    #sidebar {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 240px;
-      height: 100%;
-      background: #eee;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-      padding: 20px;
-      box-sizing: border-box;
-      transition: left 0.3s;
-      z-index: 100;
-      overflow-y: auto;
-    }
-    body.dark #sidebar {
-      background: #222;
-      color: var(--text-dark);
-    }
-    #sidebar.open {
-      left: 0;
-    }
-    #sidebar h2 {
-      margin-top: 0;
-    }
-    #sidebar ul {
-      list-style: none;
-      padding: 0;
-    }
-    #sidebar ul li {
-      padding: 10px 5px;
-      cursor: pointer;
-      border-radius: 8px;
-    }
-    #sidebar ul li:hover:not(.disabled) {
-      background: #ccc;
-    }
-    #sidebar ul li.disabled {
-      color: #888;
-      cursor: default;
-    }
-    /* Отступ у заголовка, чтобы меню не накрывал */
-    h1 {
-      margin-top: 60px;
-    }
-    /* Скрывать disabled пункты курсор */
-    #sidebar ul li.disabled:hover {
-      background: none;
-    }
-    /* Форма рекордов */
-    #recordForm input, #recordForm select {
-      width: 180px;
-      margin: 5px;
-    }
-  </style>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon.png" />
+<title>Калькулятор веса штанги</title>
+<style>
+  :root {
+    --bg-light: #fff;
+    --text-light: #000;
+    --bg-dark: #121212;
+    --text-dark: #eee;
+    --btn-bg-light: #000;
+    --btn-bg-dark: #eee;
+    --btn-text-light: #fff;
+    --btn-text-dark: #000;
+  }
+  body {
+    background: var(--bg-light);
+    color: var(--text-light);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    text-align: center;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark {
+    background: var(--bg-dark);
+    color: var(--text-dark);
+  }
+  input[type=number], input[type=text], select {
+    padding: 12px 16px;
+    font-size: 1.2em;
+    width: 220px;
+    border: 2px solid currentColor;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    outline: none;
+    background: transparent;
+    color: inherit;
+  }
+  button {
+    background: var(--btn-bg-light);
+    color: var(--btn-text-light);
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1.3em;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark button {
+    background: var(--btn-bg-dark);
+    color: var(--btn-text-dark);
+  }
+  button:hover {
+    background: #444;
+    color: #fff;
+  }
+  #result, #resultDetailed, #recordsList, #benchResults {
+    margin-top: 30px;
+    font-size: 1.3em;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  #warning {
+    margin-top: 15px;
+    color: #b00000;
+    font-weight: 700;
+  } 
+  /* Меню */
+  .menu-button {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 28px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 110;
+  }
+  #themeToggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 110;
+  }
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px;
+    width: 240px;
+    height: 100%;
+    background: #eee;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    padding: 20px;
+    box-sizing: border-box;
+    transition: left 0.3s;
+    z-index: 100;
+    overflow-y: auto;
+  }
+  body.dark #sidebar {
+    background: #222;
+    color: var(--text-dark);
+  }
+  #sidebar.open {
+    left: 0;
+  }
+  #sidebar h2 {
+    margin-top: 0;
+  }
+  #sidebar ul {
+    list-style: none;
+    padding: 0;
+  }
+  #sidebar ul li {
+    padding: 10px 5px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  #sidebar ul li:hover:not(.disabled) {
+    background: #ccc;
+  }
+  #sidebar ul li.disabled {
+    color: #888;
+    cursor: default;
+  }
+  /* Отступ у заголовка, чтобы меню не накрывал */
+  h1 {
+    margin-top: 60px;
+  }
+  /* Скрывать disabled пункты курсор */
+  #sidebar ul li.disabled:hover {
+    background: none;
+  }
+  /* Форма рекордов */
+  #recordForm input, #recordForm select {
+    width: 180px;
+    margin: 5px;
+  }
+  /* Таблица рекордов */
+  table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    width: 90%;
+    max-width: 700px;
+  }
+  table, th, td {
+    border: 1px solid currentColor;
+  }
+  th, td {
+    padding: 10px;
+    text-align: center;
+  }
+  th {
+    background-color: #ddd;
+  }
+  body.dark table th {
+    background-color: #444;
+  }
+  /* Кнопка переключения */
+  #toggleViewBtn {
+    margin-top: 10px;
+    padding: 8px 20px;
+    font-size: 1em;
+    border-radius: 12px;
+  }
+</style>
   </head>
   <body>
 
@@ -185,7 +212,10 @@
 
     let currentMode = 'plates';
 
-    function toggleMenu() {
+  // Новый флаг для переключения вида рекордов
+  let recordsViewAsTable = false;
+
+  function toggleMenu() {
       const sidebar = document.getElementById('sidebar');
       sidebar.classList.toggle('open');
     }
@@ -238,12 +268,13 @@
           <h1>Личные рекорды</h1>
           <form id="recordForm">
             <input type="text" id="name" placeholder="Ваше имя" required />
-            <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" required />
-            <input type="number" id="bodyWeight" placeholder="Вес тела (кг)" min="1" required />
+            <input type="number" id="recordWeight" placeholder="Вес (кг)" min="1" step="0.1" required />
+            <input type="number" id="bodyWeight" placeholder="Вес тела (кг)" min="1" step="0.1" required />
             <select id="exerciseType">
               <option value="bench">Жим лёжа</option>
               <option value="squat">Присед</option>
               <option value="deadlift">Становая тяга</option>
+              <option value="curl">Строгий бицепс</option>
             </select>
             <br/>
             <button type="submit">Сохранить рекорд</button>
@@ -372,12 +403,13 @@
     }
 
     // Группируем по типу упражнения
-    const grouped = { bench: [], squat: [], deadlift: [] };
+    const grouped = { bench: [], squat: [], deadlift: [], curl: [] };
     records.forEach(r => grouped[r.type]?.push(r));
 
     let leftCol = '';
-    for (const key of ['bench', 'squat', 'deadlift']) {
-      leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : 'Становая тяга'}</h3>`;
+    for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
+      leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
+}</h3>`;
       if (!grouped[key].length) {
         leftCol += '<p>Нет записей.</p>';
         continue;
