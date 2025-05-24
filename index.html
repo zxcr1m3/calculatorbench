@@ -473,7 +473,33 @@ const deadliftAttempts = [
 
         document.getElementById('recordForm').onsubmit = saveRecord;
         loadRecords();
-      } 
+      } else if(currentMode === 'chat'){
+        container.innerHTML = `
+          <h1>Чат</h1>
+          <div id="chatBox" style="height: 300px; overflow-y: auto; border: 1px solid currentColor; padding: 10px; margin-bottom: 10px;"></div>
+          <input type="text" id="chatInput" placeholder="Введите сообщение..." />
+          <button id="sendChatBtn">Отправить</button>
+        `;
+
+        document.getElementById('sendChatBtn').addEventListener('click', async () => {
+          const input = document.getElementById('chatInput');
+          const text = input.value.trim();
+          if (text) {
+            await sendMessage(text);
+            input.value = '';
+          }
+        });
+
+        // Подписка на новые сообщения
+        db.collection('chatMessages').orderBy('timestamp')
+          .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+              if (change.type === 'added') {
+                renderChatMessage(change.doc.data());
+              }
+            });
+          });
+      }
     }
 
     function calculatePlates() {
