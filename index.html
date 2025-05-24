@@ -248,26 +248,68 @@
       }
       return name;
     }
-
+    // --- Генерация и хранение userAvatar ---
+    function getUserAvatar() {
+      let avatar = localStorage.getItem('chatUserAvatar');
+      if (!avatar) {
+        avatar = prompt('Вставьте ссылку на вашу аватарку (или оставьте пустым для стандартной):');
+        if (!avatar) {
+          avatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(getUserName());
+        }
+        localStorage.setItem('chatUserAvatar', avatar);
+      }
+      return avatar;
+    }
     // --- Функции для чата ---
     async function sendMessage(text) {
-      const userId = getUserId();
-      const userName = getUserName();
-      await db.collection('chatMessages').add({
-        userId,
-        userName,
-        text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
+  const userId = getUserId();
+  const userName = getUserName();
+  const userAvatar = getUserAvatar();
+  await db.collection('chatMessages').add({
+    userId,
+    userName,
+    userAvatar,
+    text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
 
     function renderChatMessage(msg) {
-      const div = document.createElement('div');
-      div.style.margin = '6px 0';
-      div.innerHTML = `<b>${msg.userName || 'Гость'}:</b> ${msg.text}`;
-      document.getElementById('chatBox').appendChild(div);
-      document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
-    }
+  const isMe = msg.userId === getUserId();
+  const div = document.createElement('div');
+  div.style.display = 'flex';
+  div.style.alignItems = 'center';
+  div.style.margin = '8px 0';
+  div.style.justifyContent = isMe ? 'flex-end' : 'flex-start';
+
+  // Для своих сообщений — аватарка справа, для чужих — слева
+  const avatarUrl = msg.userAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(msg.userName || 'Гость');
+  if (isMe) {
+    div.innerHTML = `
+      <div style="text-align:right;">
+        <b>${msg.userName || 'Гость'}</b>
+        <span style="color:#888;font-size:0.9em;">
+          ${msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString().slice(0,5) : ''}
+        </span><br>
+        ${msg.text}
+      </div>
+      <img src="${avatarUrl}" alt="avatar" style="width:36px;height:36px;border-radius:50%;margin-left:10px;object-fit:cover;">
+    `;
+  } else {
+    div.innerHTML = `
+      <img src="${avatarUrl}" alt="avatar" style="width:36px;height:36px;border-radius:50%;margin-right:10px;object-fit:cover;">
+      <div>
+        <b>${msg.userName || 'Гость'}</b>
+        <span style="color:#888;font-size:0.9em;">
+          ${msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString().slice(0,5) : ''}
+        </span><br>
+        ${msg.text}
+      </div>
+    `;
+  }
+  document.getElementById('chatBox').appendChild(div);
+  document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+}
   </script>
 
   <script>
@@ -479,7 +521,22 @@ const deadliftAttempts = [
           <div id="chatBox" style="height: 300px; overflow-y: auto; border: 1px solid currentColor; padding: 10px; margin-bottom: 10px;"></div>
           <input type="text" id="chatInput" placeholder="Введите сообщение..." />
           <button id="sendChatBtn">Отправить</button>
+          <button id="changeNickBtn" style="margin-left:10px;">Сменить ник</button>
         `;
+        // Смена ника
+        document.getElementById('changeNickBtn').addEventListener('click', () => {
+  const newName = prompt('Введите новый никнейм:');
+  if (newName) {
+    localStorage.setItem('chatUserName', newName);
+    const newAvatar = prompt('Вставьте ссылку на новую аватарку (или оставьте пустым для стандартной):');
+    if (newAvatar) {
+      localStorage.setItem('chatUserAvatar', newAvatar);
+    } else {
+      localStorage.setItem('chatUserAvatar', 'https://ui-avatars.com/api/?name=' + encodeURIComponent(newName));
+    }
+    alert(`Никнейм и аватарка изменены!`);
+  }
+});
 
         document.getElementById('sendChatBtn').addEventListener('click', async () => {
           const input = document.getElementById('chatInput');
