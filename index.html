@@ -260,7 +260,7 @@ th {
 .telegram-bubble {
   transition: background 0.7s;
 }
-</style>  
+</style>
   </head>
   <body>
   <div class="menu-button" onclick="toggleMenu()">☰</div>
@@ -274,11 +274,11 @@ th {
       <li onclick="selectMode('records')">🏆 Личные рекорды</li>
       <li onclick="selectMode('chat')">💬 Чат</li>
       <li onclick="selectMode('compare')">📊 Сравнение с другими</li>
-      <li class="disabled">📈 Прогресс силовых</li>
-      <li class="disabled">📅 Календарь тренировок</li>
-      <li class="disabled">🧑‍💼 Профиль и цели</li>
-      <li class="disabled">🏅 Достижения</li>
-      <li class="disabled">🧪 Подбор добавок</li>
+      <li class="disabled">📈 Прогресс силовых(в разработке)</li>
+      <li class="disabled">📅 Календарь тренировок(в разработке)</li>
+      <li class="disabled">🧑‍💼 Профиль и цели(в разработке)</li>
+      <li class="disabled">🏅 Достижения(в разработке)</li>
+      <li class="disabled">🧪 Подбор добавок(в разработке)</li>
     </ul> 
   </div>
   <div id="sidebarOverlay" onclick="toggleMenu()" style="display:none;"></div>
@@ -434,16 +434,17 @@ if (savedMode) currentMode = savedMode;
         `;
         document.getElementById('platesBtn').addEventListener('click', calculatePlates);
       } else if(currentMode === 'bench'){
-        container.innerHTML = `
-          <h1>Расчёт разового максимума в жиме лёжа</h1>
-          <label>Вес штанги в жиме лёжа(в кг): </label><br/>
-          <input type="number" id="benchWeight" min="1" step="0.1" value="50" /><br/><br/>
-          <label>Количество повторений с этим весом(раз): </label>  <br/>
-          <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /><br/><br/>
-          <button id="benchBtn">Рассчитать</button>
-          <div id="benchResults"></div>
-        `;
-        } else if(currentMode === 'warmup'){
+  container.innerHTML = `
+    <h1>Расчёт разового максимума в жиме лёжа</h1>
+    <label>Вес штанги в жиме лёжа(в кг): </label><br/>
+    <input type="number" id="benchWeight" min="1" step="0.1" value="50" /><br/><br/>
+    <label>Количество повторений с этим весом(раз): </label>  <br/>
+    <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /><br/><br/>
+    <button id="benchBtn">Рассчитать</button>
+    <div id="benchResults"></div>
+  `;
+  document.getElementById('benchBtn').addEventListener('click', calculateBenchMax); // ← добавьте эту строку
+} else if(currentMode === 'warmup'){
         container.innerHTML = `
           <h1>Калькулятор разминки на проходку</h1>
           <p>Выберите упражнение:</p>
