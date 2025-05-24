@@ -789,6 +789,7 @@ const deadliftAttempts = [
     records.forEach(r => grouped[r.type]?.push(r));
 
     let leftCol = '';
+    // Сортировка внутри каждого упражнения по весу (по убыванию)
     for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
       leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
 }</h3>`;
@@ -796,6 +797,8 @@ const deadliftAttempts = [
         leftCol += '<p>Нет записей.</p>';
         continue;
       }
+      // Сортируем по весу
+      grouped[key].sort((a, b) => b.weight - a.weight);
       for (const r of grouped[key]) {
         const dateStr = new Date(r.date).toLocaleDateString();
         leftCol += `<p><b>${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
@@ -804,17 +807,12 @@ const deadliftAttempts = [
 
     // 💪 Подсчёт сумм по именам с учетом веса тела
     const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
-
     for (const record of records) {
       const { name, type, weight, bodyWeight } = record;
       if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
-
-      // Запоминаем вес тела (берём последний непустой)
       if (bodyWeight && bodyWeight > 0) {
         totals[name].bodyWeight = bodyWeight;
       }
-
-      // Только лучший результат по каждому упражнению
       if (weight > (totals[name][type] || 0)) {
         totals[name][type] = weight;
       }
@@ -823,14 +821,13 @@ const deadliftAttempts = [
     // Считаем суммы и проценты
     const totalArray = Object.entries(totals).map(([name, lifts]) => {
       const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
-      const bodyWeight = lifts.bodyWeight || 1; // чтобы не делить на 0
+      const bodyWeight = lifts.bodyWeight || 1;
       const percent = (total / bodyWeight) * 100;
-
       return { name, total, percent };
     });
 
-    // Сортировка по сумме
-    totalArray.sort((a, b) => b.total - a.total);
+    // Сортировка по проценту (от большего к меньшему)
+    totalArray.sort((a, b) => b.percent - a.percent);
 
     // Построим правую колонку с процентами
     let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
