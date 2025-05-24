@@ -7,187 +7,160 @@
 <link rel="apple-touch-icon" href="icon.png" />
 <title>Калькулятор веса штанги</title>
 <style>
-  :root {
-    --bg-light: #fff;
-    --text-light: #000;
-    --bg-dark: #121212;
-    --text-dark: #eee;
-    --btn-bg-light: #000;
-    --btn-bg-dark: #eee;
-    --btn-text-light: #fff;
-    --btn-text-dark: #000;
-  }
   body {
-    background: var(--bg-light);
-    color: var(--text-light);
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    text-align: center;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark {
-    background: var(--bg-dark);
-    color: var(--text-dark);
-  }
-  input[type=number], input[type=text], select {
-    padding: 12px 16px;
-    font-size: 1.2em;
-    width: 220px;
-    border: 2px solid currentColor;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    outline: none;
-    background: transparent;
-    color: inherit;
-  }
-  button {
-    background: var(--btn-bg-light);
-    color: var(--btn-text-light);
-    border: none;
-    border-radius: 14px;
-    padding: 14px 28px;
-    font-size: 1.3em;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark button {
-    background: var(--btn-bg-dark);
-    color: var(--btn-text-dark);
-  }
-  button:hover {
-    background: #444;
-    color: #fff;
-  }
-  #result, #resultDetailed, #recordsList, #benchResults {
-    margin-top: 30px;
-    font-size: 1.3em;
-    font-weight: 600;
-    line-height: 1.4;
-    white-space: pre-wrap;
-  }
-  #warning {
-    margin-top: 15px;
-    color: #b00000;
-    font-weight: 700;
-  } 
-  /* Меню */
-  .menu-button {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    font-size: 28px;
-    cursor: pointer;
-    user-select: none;
-    z-index: 110;
-  }
-  #themeToggle {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    font-size: 24px;
-    cursor: pointer;
-    user-select: none;
-    z-index: 110;
-  }
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 240px;
-    height: 100%;
-    background: #eee;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-    padding: 20px;
-    box-sizing: border-box;
-    transition: left 0.3s;
-    z-index: 100;
-    overflow-y: auto;
-  }
-  body.dark #sidebar {
-    background: #222;
-    color: var(--text-dark);
-  }
-  #sidebar.open {
-    left: 0;
-  }
-  #sidebar h2 {
-    margin-top: 0;
-  }
-  #sidebar ul {
-    list-style: none;
-    padding: 0;
-  }
-  #sidebar ul li {
-    padding: 10px 5px;
-    cursor: pointer;
-    border-radius: 8px;
-  }
-  #sidebar ul li:hover:not(.disabled) {
-    background: #ccc;
-  }
-  #sidebar ul li.disabled {
-    color: #888;
-    cursor: default;
-  }
-  /* Отступ у заголовка, чтобы меню не накрывал */
-  h1 {
-    margin-top: 60px;
-  }
-  /* Скрывать disabled пункты курсор */
-  #sidebar ul li.disabled:hover {
-    background: none;
-  }
-  /* Форма рекордов */
-  #recordForm input, #recordForm select {
-    width: 180px;
-    margin: 5px;
-  }
-  /* Таблица рекордов */
-  table {
-    margin: 20px auto;
-    border-collapse: collapse;
-    width: 90%;
-    max-width: 700px;
-  }
-  table, th, td {
-    border: 1px solid currentColor;
-  }
-  th, td {
-    padding: 10px;
-    text-align: center;
-  }
-  th {
-    background-color: #ddd;
-  }
-  body.dark table th {
-    background-color: #444;
-  }
-  /* Кнопка переключения */
-  #toggleViewBtn {
-    margin-top: 10px;
-    padding: 8px 20px;
-    font-size: 1em;
-    border-radius: 12px;
-  }
-  #warmupResult {
+  background: #121212;
+  color: #E0E0E0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  text-align: center;
+  transition: background-color 0.3s, color 0.3s;
+}
+input[type=number], input[type=text], select {
+  padding: 12px 16px;
+  font-size: 1.2em;
+  width: 220px;
+  border: 2px solid #424242;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  outline: none;
+  background: #1E1E1E;
+  color: #E0E0E0;
+}
+button {
+  background: #fff;
+  color: #121212;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-size: 1.3em;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+button:hover {
+  background: #2979FF;
+  color: #fff;
+}
+#result, #resultDetailed, #recordsList, #benchResults {
+  margin-top: 30px;
+  font-size: 1.3em;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+#warning {
+  margin-top: 15px;
+  color: #ff5252;
+  font-weight: 700;
+}
+.menu-button {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  font-size: 28px;
+  cursor: pointer;
+  user-select: none;
+  z-index: 110;
+  color: #E0E0E0;
+}
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: -250px;
+  width: 240px;
+  height: 100%;
+  background: #1E1E1E;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  padding: 20px;
+  box-sizing: border-box;
+  transition: left 0.3s;
+  z-index: 100;
+  overflow-y: auto;
+  color: #E0E0E0;
+}
+#sidebar.open {
+  left: 0;
+}
+#sidebar h2 {
+  margin-top: 0;
+  color: #E0E0E0;
+}
+#sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+#sidebar ul li {
+  padding: 10px 5px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #E0E0E0;
+}
+#sidebar ul li:hover:not(.disabled) {
+  background: #424242;
+}
+#sidebar ul li.disabled {
+  color: #9E9E9E;
+  cursor: default;
+}
+h1 {
+  margin-top: 60px;
+}
+#sidebar ul li.disabled:hover {
+  background: none;
+}
+#recordForm input, #recordForm select {
+  width: 180px;
+  margin: 5px;
+  background: #1E1E1E;
+  color: #E0E0E0;
+  border: 1px solid #424242;
+}
+table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 90%;
+  max-width: 700px;
+  background: #1E1E1E;
+  color: #E0E0E0;
+}
+table, th, td {
+  border: 1px solid #424242;
+}
+th, td {
+  padding: 10px;
+  text-align: center;
+}
+th {
+  background-color: #232323;
+  color: #E0E0E0;
+}
+#toggleViewBtn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  font-size: 1em;
+  border-radius: 12px;
+  background: #2979FF;
+  color: #fff;
+  border: none;
+}
+#warmupResult {
   font-size: 1.2em;
   font-weight: 700;
   margin-top: 30px;
   white-space: pre-wrap;
 }
-  #sidebarOverlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.3);
-    z-index: 99;
-    display: none;
-  }
-  #sidebar.open + #sidebarOverlay {
-    display: block;
-  }
-  /* Telegram-like chat */
+#sidebarOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 99;
+  display: none;
+}
+#sidebar.open + #sidebarOverlay {
+  display: block;
+}
+/* Telegram-like chat */
 #chatBox {
-  background: #9ba6b6;
+  background: #1E1E1E;
   border-radius: 18px;
   padding: 16px 8px 70px 8px;
   min-height: 300px;
@@ -196,9 +169,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-body.dark #chatBox {
-  background: #181820;
 }
 .telegram-message {
   display: flex;
@@ -211,51 +181,44 @@ body.dark #chatBox {
   flex-direction: row-reverse;
 }
 .telegram-bubble {
-  background: #fff;
+  background: #232323;
   border-radius: 18px;
-  padding: 6px 12px; /* было 10px 16px */
+  padding: 6px 12px;
   font-size: 1.1em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  margin: 0 6px;  
+  margin: 0 6px;
   word-break: break-word;
   position: relative;
   min-width: 40px;
   max-width: 350px;
   text-align: left;
-  line-height: 1.2; /* чуть плотнее */
+  line-height: 1.2;
+  color: #E0E0E0;
+  border: 1px solid #424242;
 }
 .telegram-bubble > div:first-child {
-  margin-bottom: 0; /* убираем лишний отступ у имени */
+  margin-bottom: 0;
 }
-/* Светлая тема (уже есть) */
 .telegram-message.me .telegram-bubble {
-  background: #f7f7fa;
-  color: #000;
+  background: #1E1E1E;
+  color: #E0E0E0;
+  border: 1px solid #424242;
 }
 .telegram-message:not(.me) .telegram-bubble {
-  background: #c7c7cc;
-  color: #000;
-}
-
-/* Тёмная тема */
-body.dark .telegram-message.me .telegram-bubble {
-  background: #23232b;
-  color: #fff;
-}
-body.dark .telegram-message:not(.me) .telegram-bubble {
-  background: #444452;
-  color: #fff;
+  background: #232323;
+  color: #E0E0E0;
+  border: 1px solid #424242;
 }
 .telegram-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid #ccc;
+  border: 1.5px solid #424242;
 }
-.telegram-meta {      
+.telegram-meta {
   font-size: 0.85em;
-  color: #888;
+  color: #9E9E9E;
   margin-top: 2px;
   text-align: right;
 }
@@ -263,30 +226,32 @@ body.dark .telegram-message:not(.me) .telegram-bubble {
   width: 70%;
   padding: 12px;
   border-radius: 18px;
-  border: 1.5px solid #ccc;
+  border: 1.5px solid #424242;
   font-size: 1.1em;
   margin-right: 8px;
   outline: none;
+  background: #232323;
+  color: #E0E0E0;
 }
 #sendChatBtn {
   padding: 12px 22px;
   border-radius: 18px;
   font-size: 1.1em;
-  background: #0088cc;
+  background: #2979FF;
   color: #fff;
   border: none;
   margin-right: 8px;
 }
 #sendChatBtn:hover {
-  background: #007ab8;
+  background: #1565c0;
 }
 #changeNickBtn {
   padding: 12px 18px;
   border-radius: 18px;
   font-size: 1.1em;
-  background: #eee;
-  color: #333;
-  border: none;
+  background: #232323;
+  color: #E0E0E0;
+  border: 1px solid #424242;
 }
 @media (max-width: 600px) {
   #chatBox { max-height: 250px; }
@@ -299,7 +264,6 @@ body.dark .telegram-message:not(.me) .telegram-bubble {
   </head>
   <body>
   <div class="menu-button" onclick="toggleMenu()">☰</div>
-  <div id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌞</div>
 
   <div id="sidebar">
     <h2>Меню</h2>
@@ -441,17 +405,6 @@ if (savedMode) currentMode = savedMode;
   sidebar.classList.toggle('open');
   overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
 }
-
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      const themeToggle = document.getElementById('themeToggle');
-      if(document.body.classList.contains('dark')){
-        themeToggle.textContent = '🌙';
-      } else {
-        themeToggle.textContent = '🌞';
-      }
-    }
-
     function selectMode(mode) {
   currentMode = mode;
   localStorage.setItem('lastMode', mode);
@@ -791,19 +744,19 @@ const deadliftAttempts = [
     let leftCol = '';
     // Сортировка внутри каждого упражнения по весу (по убыванию)
     for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
-      leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
+  leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
 }</h3>`;
-      if (!grouped[key].length) {
-        leftCol += '<p>Нет записей.</p>';
-        continue;
-      }
-      // Сортируем по весу
-      grouped[key].sort((a, b) => b.weight - a.weight);
-      for (const r of grouped[key]) {
-        const dateStr = new Date(r.date).toLocaleDateString();
-        leftCol += `<p><b>${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
-      }
-    }
+  if (!grouped[key].length) {
+    leftCol += '<p>Нет записей.</p>';
+    continue;
+  }
+  // Сортируем по весу
+  grouped[key].sort((a, b) => b.weight - a.weight);
+  grouped[key].forEach((r, idx) => {
+    const dateStr = new Date(r.date).toLocaleDateString();
+    leftCol += `<p><b>${idx + 1}. ${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+  });
+}
 
     // 💪 Подсчёт сумм по именам с учетом веса тела
     const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
