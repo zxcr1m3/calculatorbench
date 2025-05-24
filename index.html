@@ -701,10 +701,9 @@ const deadliftAttempts = [
   const bodyWeight = parseFloat(document.getElementById('bodyWeight').value);
   const type = document.getElementById('exerciseType').value;
 
-  // Вот тут добавляем проверку:
   if (!name || isNaN(weight) || weight <= 0 || isNaN(bodyWeight) || bodyWeight <= 0) {
     alert('Пожалуйста, введите корректные данные для всех полей.');
-    return;  // прерываем функцию, если данные неверные
+    return;
   }
 
   // Далее идет код сохранения в базу
@@ -716,7 +715,7 @@ const deadliftAttempts = [
       type,
       date: new Date().toISOString(),
     });
-    alert('Рекорд успешно сохранён!');
+    // alert('Рекорд успешно сохранён!'); // УДАЛИТЬ ЭТУ СТРОКУ
     location.reload();
   } catch (error) {
     alert('Ошибка при сохранении рекорда: ' + error.message);
