@@ -185,7 +185,117 @@
   #sidebar.open + #sidebarOverlay {
     display: block;
   }
-</style>
+  /* Telegram-like chat */
+#chatBox {
+  background: #9ba6b6;
+  border-radius: 18px;
+  padding: 16px 8px 70px 8px;
+  min-height: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+body.dark #chatBox {
+  background: #181820;
+}
+.telegram-message {
+  display: flex;
+  align-items: flex-end;
+  margin: 2px 0;
+  max-width: 80%;
+}
+.telegram-message.me {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.telegram-bubble {
+  background: #fff;
+  border-radius: 18px;
+  padding: 6px 12px; /* было 10px 16px */
+  font-size: 1.1em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin: 0 6px;  
+  word-break: break-word;
+  position: relative;
+  min-width: 40px;
+  max-width: 350px;
+  text-align: left;
+  line-height: 1.2; /* чуть плотнее */
+}
+.telegram-bubble > div:first-child {
+  margin-bottom: 0; /* убираем лишний отступ у имени */
+}
+/* Светлая тема (уже есть) */
+.telegram-message.me .telegram-bubble {
+  background: #f7f7fa;
+  color: #000;
+}
+.telegram-message:not(.me) .telegram-bubble {
+  background: #c7c7cc;
+  color: #000;
+}
+
+/* Тёмная тема */
+body.dark .telegram-message.me .telegram-bubble {
+  background: #23232b;
+  color: #fff;
+}
+body.dark .telegram-message:not(.me) .telegram-bubble {
+  background: #444452;
+  color: #fff;
+}
+.telegram-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #ccc;
+}
+.telegram-meta {      
+  font-size: 0.85em;
+  color: #888;
+  margin-top: 2px;
+  text-align: right;
+}
+#chatInput {
+  width: 70%;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1.5px solid #ccc;
+  font-size: 1.1em;
+  margin-right: 8px;
+  outline: none;
+}
+#sendChatBtn {
+  padding: 12px 22px;
+  border-radius: 18px;
+  font-size: 1.1em;
+  background: #0088cc;
+  color: #fff;
+  border: none;
+  margin-right: 8px;
+}
+#sendChatBtn:hover {
+  background: #007ab8;
+}
+#changeNickBtn {
+  padding: 12px 18px;
+  border-radius: 18px;
+  font-size: 1.1em;
+  background: #eee;
+  color: #333;
+  border: none;
+}
+@media (max-width: 600px) {
+  #chatBox { max-height: 250px; }
+  #chatInput { width: 55%; }
+}
+.telegram-bubble {
+  transition: background 0.7s;
+}
+</style>  
   </head>
   <body>
   <div class="menu-button" onclick="toggleMenu()">☰</div>
@@ -276,38 +386,37 @@
 
     function renderChatMessage(msg) {
   const isMe = msg.userId === getUserId();
-  const div = document.createElement('div');
-  div.style.display = 'flex';
-  div.style.alignItems = 'center';
-  div.style.margin = '8px 0';
-  div.style.justifyContent = isMe ? 'flex-end' : 'flex-start';
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'telegram-message' + (isMe ? ' me' : '');
 
-  // Для своих сообщений — аватарка справа, для чужих — слева
   const avatarUrl = msg.userAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(msg.userName || 'Гость');
+  const avatar = document.createElement('img');
+  avatar.className = 'telegram-avatar';
+  avatar.src = avatarUrl;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'telegram-bubble';
+  bubble.innerHTML = `
+    <div style="font-weight:600;margin-bottom:2px;">${msg.userName || 'Гость'}</div>
+    <div>${msg.text}</div>
+    <div class="telegram-meta">
+      ${msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString().slice(0,5) : ''}
+    </div>
+  `;
+
+  // Вложим элементы в правильном порядке
   if (isMe) {
-    div.innerHTML = `
-      <div style="text-align:right;">
-        <b>${msg.userName || 'Гость'}</b>
-        <span style="color:#888;font-size:0.9em;">
-          ${msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString().slice(0,5) : ''}
-        </span><br>
-        ${msg.text}
-      </div>
-      <img src="${avatarUrl}" alt="avatar" style="width:36px;height:36px;border-radius:50%;margin-left:10px;object-fit:cover;">
-    `;
+    msgDiv.appendChild(bubble);
+    msgDiv.appendChild(avatar);
   } else {
-    div.innerHTML = `
-      <img src="${avatarUrl}" alt="avatar" style="width:36px;height:36px;border-radius:50%;margin-right:10px;object-fit:cover;">
-      <div>
-        <b>${msg.userName || 'Гость'}</b>
-        <span style="color:#888;font-size:0.9em;">
-          ${msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString().slice(0,5) : ''}
-        </span><br>
-        ${msg.text}
-      </div>
-    `;
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
   }
-  document.getElementById('chatBox').appendChild(div);
+
+  // Добавим небольшой отступ между сообщениями
+  msgDiv.style.marginBottom = '4px';
+
+  document.getElementById('chatBox').appendChild(msgDiv);
   document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
 }
   </script>
@@ -518,10 +627,12 @@ const deadliftAttempts = [
       } else if(currentMode === 'chat'){
         container.innerHTML = `
           <h1>Чат</h1>
-          <div id="chatBox" style="height: 300px; overflow-y: auto; border: 1px solid currentColor; padding: 10px; margin-bottom: 10px;"></div>
-          <input type="text" id="chatInput" placeholder="Введите сообщение..." />
-          <button id="sendChatBtn">Отправить</button>
-          <button id="changeNickBtn" style="margin-left:10px;">Сменить ник</button>
+          <div id="chatBox"></div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+  <input type="text" id="chatInput" placeholder="Введите сообщение..." />
+  <button id="sendChatBtn">Отправить</button>
+  <button id="changeNickBtn">Сменить ник</button>
+</div>
         `;
         // Смена ника
         document.getElementById('changeNickBtn').addEventListener('click', () => {
