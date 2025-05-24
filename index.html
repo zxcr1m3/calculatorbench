@@ -218,6 +218,10 @@
     const barWeight = 20;
 
     let currentMode = 'plates';
+    
+
+    const savedMode = localStorage.getItem('lastMode');
+if (savedMode) currentMode = savedMode;
 
   // Новый флаг для переключения вида рекордов
   let recordsViewAsTable = false;
@@ -238,10 +242,11 @@
     }
 
     function selectMode(mode) {
-      currentMode = mode;
-      toggleMenu();
-      renderMode();
-    }
+  currentMode = mode;
+  localStorage.setItem('lastMode', mode);
+  toggleMenu();
+  renderMode();
+}
 
     function renderMode() {
       const container = document.getElementById('modeContent');
@@ -482,7 +487,7 @@ const deadliftAttempts = [
 
     // Firestore — сохранить рекорд
       async function saveRecord(e) {
-  e.preventDefault();  // чтобы форма не отправлялась и страница не перезагружалась
+  e.preventDefault();
 
   const name = document.getElementById('name').value.trim();
   const weight = parseFloat(document.getElementById('recordWeight').value);
@@ -505,7 +510,7 @@ const deadliftAttempts = [
       date: new Date().toISOString(),
     });
     alert('Рекорд успешно сохранён!');
-    // Очистка формы или обновление списка
+    location.reload();
   } catch (error) {
     alert('Ошибка при сохранении рекорда: ' + error.message);
   }
