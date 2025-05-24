@@ -175,6 +175,16 @@
   margin-top: 30px;
   white-space: pre-wrap;
 }
+  #sidebarOverlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 99;
+    display: none;
+  }
+  #sidebar.open + #sidebarOverlay {
+    display: block;
+  }
 </style>
   </head>
   <body>
@@ -189,8 +199,9 @@
       <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
       <li onclick="selectMode('warmup')">🏋️‍♂️ Разминка на проходку</li>
       <li onclick="selectMode('records')">🏆 Личные рекорды</li>
-    </ul>
+    </ul> 
   </div>
+  <div id="sidebarOverlay" onclick="toggleMenu()" style="display:none;"></div>
 
   <div id="modeContent">
   </div>
@@ -227,9 +238,11 @@ if (savedMode) currentMode = savedMode;
   let recordsViewAsTable = false;
 
   function toggleMenu() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('open');
-    }
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+}
 
     function toggleTheme() {
       document.body.classList.toggle('dark');
