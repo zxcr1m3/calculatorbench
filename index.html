@@ -431,10 +431,10 @@ if (savedMode) currentMode = savedMode;
       } else if(currentMode === 'bench'){
         container.innerHTML = `
           <h1>Расчёт разового максимума в жиме лёжа</h1>
-          <label>Вес штанги в жиме лёжа: </label><br/>
-          <input type="number" id="benchWeight" min="1" step="0.1" value="50" /> кг<br/><br/>
-          <label>Количество повторений с этим весом: </label><br/>
-          <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /> раз<br/><br/>
+          <label>Вес штанги в жиме лёжа(в кг): </label><br/>
+          <input type="number" id="benchWeight" min="1" step="0.1" value="50" /><br/><br/>
+          <label>Количество повторений с этим весом(раз): </label>  <br/>
+          <input type="number" id="benchReps" min="1" max="20" step="1" value="10" /><br/><br/>
           <button id="benchBtn">Рассчитать</button>
           <div id="benchResults"></div>
         `;
