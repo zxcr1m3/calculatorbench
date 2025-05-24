@@ -169,6 +169,12 @@
     font-size: 1em;
     border-radius: 12px;
   }
+  #warmupResult {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin-top: 30px;
+  white-space: pre-wrap;
+}
 </style>
   </head>
   <body>
@@ -181,6 +187,7 @@
     <ul>
       <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
       <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
+      <li onclick="selectMode('warmup')">🏋️‍♂️ Разминка на проходку</li>
       <li onclick="selectMode('records')">🏆 Личные рекорды</li>
     </ul>
   </div>
@@ -263,7 +270,123 @@
           <div id="benchResults"></div>
         `;
         document.getElementById('benchBtn').addEventListener('click', calculateBenchMax);
-      } else if(currentMode === 'records'){
+      } else if(currentMode === 'warmup'){
+  container.innerHTML = `
+    <h1>Калькулятор разминки на проходку</h1>
+    <p>Выберите упражнение:</p>
+    <select id="exerciseSelect">
+      <option value="bench">Жим лёжа</option>
+      <option value="deadlift">Становая тяга</option>
+      <option value="squat">Присед</option>
+    </select>
+    <p>Введите ваш максимум (в кг):</p>
+    <input type="number" id="warmupWeight" min="${barWeight}" step="0.25" value="120" />
+    <br/>
+    <button id="warmupBtn">Рассчитать разминку</button>
+    <pre id="warmupResult" style="white-space: pre-wrap; margin-top:10px;"></pre>
+  `;
+
+  document.getElementById('warmupBtn').addEventListener('click', function() {
+    const maxWeight = parseFloat(document.getElementById('warmupWeight').value);
+    const exercise = document.getElementById('exerciseSelect').value;
+
+    if (isNaN(maxWeight) || maxWeight < barWeight) {
+      document.getElementById('warmupResult').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
+      return;
+    }
+
+    // Функция округления веса с учётом шага 2.5 (блины)
+    function roundPlate(weight) {
+      return Math.round(weight / 2.5) * 2.5;
+    }
+
+    // Жим лёжа — разминка и попытки (пример)
+    const benchWarmup = [
+  { percent: 0.3, reps: 10 },  // обычно ниже %, чтобы разогреться плечам
+  { percent: 0.5, reps: 8 },
+  { percent: 0.7, reps: 5 },
+  { percent: 0.85, reps: 3 },
+  { percent: 0.95, reps: 1 },
+];
+
+    const benchAttempts = [
+  { percent: 1.0, color: '🟩', desc: 'первая попытка' },
+  { percent: 1.03, color: '🟨', desc: 'вторая попытка (если чувствуешь силы)' },
+  { percent: 1.05, color: '🔴', desc: 'максимально рисковая' },
+];
+
+    // Становая тяга — разминка и попытки
+const deadliftWarmup = [
+  { percent: 0.4, reps: 8 },
+  { percent: 0.6, reps: 5 },
+  { percent: 0.75, reps: 3 },
+  { percent: 0.9, reps: 2 },
+  { percent: 0.95, reps: 1 },
+];
+
+const deadliftAttempts = [
+  { percent: 1.0, color: '🟩', desc: 'первая попытка' },
+  { percent: 1.05, color: '🟨', desc: 'вторая попытка (если чувствуешь силы)' },
+  { percent: 1.1, color: '🔴', desc: 'максимально рисковая' },
+];
+
+    // Присед — разминка и попытки (по процентам)
+    const squatWarmup = [
+      { percent: 0.4, reps: 10 },
+      { percent: 0.6, reps: 5 },
+      { percent: 0.8, reps: 3 },
+      { percent: 0.9, reps: 2 },
+      { percent: 0.95, reps: 1 },
+    ];
+
+    const squatAttempts = [
+      { percent: 1.0, color: '🟩', desc: 'первая попытка' },
+      { percent: 1.05, color: '🟨', desc: 'вторая попытка (если чувствуешь силы)' },
+      { percent: 1.1, color: '🔴', desc: 'максимально рисковая' },
+    ];
+
+    let result = '';
+
+    if (exercise === 'bench') {
+  result += `💪 ЖИМ ЛЁЖА — разминка:\n`;
+  benchWarmup.forEach(set => {
+    const w = roundPlate(maxWeight * set.percent);
+    result += `${set.reps} повторений с ${w} кг\n`;
+  }); 
+  result += `\nПопытки:\n`;
+  benchAttempts.forEach(attempt => {
+  const w = roundPlate(maxWeight * attempt.percent);
+  result += `${attempt.color} ${w} кг — ${attempt.desc}\n`;
+});
+} else if (exercise === 'deadlift') {
+  result += `🏋️ СТАНОВАЯ ТЯГА — разминка:\n`;
+  deadliftWarmup.forEach(set => {
+    const w = roundPlate(maxWeight * set.percent);
+    result += `${set.reps} повторений с ${w} кг\n`;
+  });
+  result += `\nПопытки:\n`;
+  deadliftAttempts.forEach(attempt => {
+    const w = roundPlate(maxWeight * attempt.percent);
+    if (w <= maxWeight + 20) {
+      result += `${attempt.color} ${w} кг — ${attempt.desc}\n`;
+    }   
+  });
+} else if (exercise === 'squat') {
+  result += `🏋️ ПРИСЕД — разминка:\n`;
+  squatWarmup.forEach(set => {
+    const w = roundPlate(maxWeight * set.percent);
+    result += `${set.reps} повторений с ${w} кг\n`;
+  });
+  result += `\nПопытки:\n`;
+  squatAttempts.forEach(attempt => {
+    const w = roundPlate(maxWeight * attempt.percent);
+    result += `${attempt.color} ${w} кг — ${attempt.desc}\n`;
+  });
+}
+
+    document.getElementById('warmupResult').textContent = result;
+  });
+} else if(currentMode === 'records'){
         container.innerHTML = `
           <h1>Личные рекорды</h1>
           <form id="recordForm">
