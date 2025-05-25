@@ -444,51 +444,72 @@ if (savedMode) currentMode = savedMode;
   `;
   document.getElementById('benchBtn').addEventListener('click', calculateBenchMax); // ← добавьте эту строку
 } else if(currentMode === 'warmup'){
-        container.innerHTML = `
-          <h1>Калькулятор разминки на проходку</h1>
-          <p>Выберите упражнение:</p>
-          <select id="exerciseSelect">
-        <option value="bench">Жим лёжа</option>
-        <option value="deadlift">Становая тяга</option>
-        <option value="squat">Присед</option>
-          </select>
-          <p>Введите ваш максимум (в кг):</p>
-          <input type="number" id="warmupWeight" min="${barWeight}" step="0.25" value="120" />
-          <br/>
-          <button id="warmupBtn">Рассчитать разминку</button>
-          <pre id="warmupResult" style="white-space: pre-wrap; margin-top:10px;"></pre>
-        `;
+  container.innerHTML = `
+    <h1>Калькулятор разминки на проходку</h1>
+    <p>Выберите упражнение:</p>
+    <select id="exerciseSelect">
+  <option value="bench">Жим лёжа</option>
+  <option value="deadlift">Становая тяга</option>
+  <option value="squat">Присед</option>
+    </select>
+    <p>Введите ваш максимум (в кг):</p>
+    <input type="number" id="warmupWeight" min="${barWeight}" step="0.25" value="120" />
+    <br/>
+    <button id="warmupBtn">Рассчитать разминку</button>
+    <pre id="warmupResult" style="white-space: pre-wrap; margin-top:10px;"></pre>
+  `;
 
-        document.getElementById('warmupBtn').addEventListener('click', function() {
-          const maxWeight = parseFloat(document.getElementById('warmupWeight').value);
-          const exercise = document.getElementById('exerciseSelect').value;
+  document.getElementById('warmupBtn').addEventListener('click', function() {
+    const maxWeight = parseFloat(document.getElementById('warmupWeight').value);
+    const exercise = document.getElementById('exerciseSelect').value;
 
-          if (isNaN(maxWeight) || maxWeight < barWeight) {
-        document.getElementById('warmupResult').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
-        return;
-          }
+    if (isNaN(maxWeight) || maxWeight < barWeight) {
+  document.getElementById('warmupResult').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
+  return;
+    }
 
-          // Функция округления веса с учётом шага 0.5 (блины)
-          function roundPlate(weight) {
-        return Math.round(weight / 0.5) * 0.5;
-          }
+    // Функция округления веса к ближайшему возможному набору блинов
+    function roundToAvailable(weight) {
+      // barWeight = 20, plates = [20, 15, 10, 5, 2.5, 1.25]
+      if (weight <= barWeight) return barWeight;
+      let rest = (weight - barWeight) / 2;
+      let used = {};
+      for (const p of plates) used[p] = 0;
+      for (const p of plates) {
+        while (rest >= p - 0.001) {
+    rest -= p;
+    used[p]++;
+        }
+      }
+      // Собираем итоговый вес
+      let total = barWeight + 2 * Object.entries(used).reduce((sum, [p, c]) => sum + p * c, 0);
+      // Если не удалось собрать, ищем ближайший меньший возможный
+      if (total > weight + 0.001) {
+        // уменьшить на 1.25 с каждой стороны
+        if (used[1.25] > 0) {
+    used[1.25]--;
+    total -= 2 * 1.25;
+        }
+      }
+      return total;
+    }
 
-          // Жим лёжа — разминка и попытки (пример)
-          const benchWarmup = [
-        { percent: 0, reps: 10, barOnly: true }, // всегда 10 повторений пустым грифом>
-        { percent: 0.5, reps: 6 },
-        { percent: 0.7, reps: 4 },
-        { percent: 0.85, reps: 2 },
-        { percent: 0.95, reps: 1 },
-          ];
+    // Жим лёжа — разминка и попытки (пример)
+    const benchWarmup = [
+  { percent: 0, reps: 10, barOnly: true }, // всегда 10 повторений пустым грифом>
+  { percent: 0.5, reps: 6 },
+  { percent: 0.7, reps: 4 },
+  { percent: 0.85, reps: 2 },
+  { percent: 0.95, reps: 1 },
+    ];
 
-          const benchAttempts = [
-        { percent: 1.0, color: '🟩', desc: 'первая попытка' },
-        { percent: 1.03, color: '🟨', desc: 'вторая попытка (если чувствуешь силы)' },
-        { percent: 1.05, color: '🔴', desc: 'максимально рисковая' },
-          ];
+    const benchAttempts = [
+  { percent: 1.0, color: '🟩', desc: 'первая попытка' },
+  { percent: 1.03, color: '🟨', desc: 'вторая попытка (если чувствуешь силы)' },
+  { percent: 1.05, color: '🔴', desc: 'максимально рисковая' },
+    ];
 
-          // Становая тяга — разминка и попытки
+    // Становая тяга — разминка и попытки
 const deadliftWarmup = [
   { percent: 0.4, reps: 8 },
   { percent: 0.6, reps: 5 },
@@ -747,47 +768,51 @@ const deadliftAttempts = [
           document.getElementById('compareInfo').textContent = '';
               };
             }
-
-      let target = parseFloat(document.getElementById('weightInput').value);
-      if (isNaN(target) || target < barWeight) {
-        document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
-        return;
-      }
-
-      let platesToUse = (target - barWeight) / 2; // для каждой стороны
-      if (platesToUse < 0) {
-        document.getElementById('warning').textContent = "Вес меньше веса грифа!";
-        return;
-      }
-
-      let plateCount = {};
-      for (const plate of plates) {
-        plateCount[plate] = 0;
-      }
-
-      for (const plate of plates) {
-        while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
-          platesToUse -= plate;
-          plateCount[plate]++;
-        }
-      }
-
-      if (platesToUse > 0.001) {
-        document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
-      }
-
-      let result = Object.entries(plateCount)
-        .filter(([_, c]) => c > 0)
-        .map(([p, c]) => `${c} x ${p} кг`)
-        .join(", ");
-
-      if (!result) result = "Только гриф — " + barWeight + " кг";
-
-      document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
     }
 
-    // Формулы расчёта 1ПМ в жиме лёжа
-    function calculateBenchMax() {
+    function calculatePlates() {
+  let target = parseFloat(document.getElementById('weightInput').value);
+
+  if (isNaN(target) || target < barWeight) {
+    document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
+    return;
+  }
+
+  let platesToUse = (target - barWeight) / 2; // для каждой стороны
+  if (platesToUse < 0) {
+    document.getElementById('warning').textContent = "Вес меньше веса грифа!";
+    return;
+  }
+
+  let plateCount = {};
+  for (const plate of plates) {
+    plateCount[plate] = 0;
+  }
+
+  for (const plate of plates) {
+    while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
+      platesToUse -= plate;
+      plateCount[plate]++;
+    }
+  }
+
+  if (platesToUse > 0.001) {
+    document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
+  } else {
+    document.getElementById('warning').textContent = "";
+  }
+
+  let result = Object.entries(plateCount)
+    .filter(([_, c]) => c > 0)
+    .map(([p, c]) => `${c} x ${p} кг`)
+    .join(", ");
+
+  if (!result) result = "Только гриф — " + barWeight + " кг";
+
+  document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
+}
+
+function calculateBenchMax() {
       const weight = parseFloat(document.getElementById('benchWeight').value);
       const reps = parseInt(document.getElementById('benchReps').value);
       if(isNaN(weight) || isNaN(reps) || weight <= 0 || reps <= 0){
@@ -811,6 +836,7 @@ const deadliftAttempts = [
       }
       document.getElementById('benchResults').textContent = resStr;
     }
+    
 
     // Firestore — сохранить рекорд
       async function saveRecord(e) {
@@ -904,7 +930,8 @@ const deadliftAttempts = [
   // Построим правую колонку с процентами
   let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
   totalArray.forEach((entry, index) => {
-    rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
+    // Добавляем к имени ссылку-переход на профиль
+    rightCol += `<p><b>${index + 1}. <a href="#" class="profile-link" data-name="${encodeURIComponent(entry.name)}" style="color:#2979FF;text-decoration:underline;">${entry.name}</a></b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
   });
 
   // Выводим в две колонки
@@ -914,26 +941,6 @@ const deadliftAttempts = [
     <div style="flex: 1; min-width: 300px;">${rightCol}</div>
     </div>
   `;
-
-  // Навешиваем обработчик на ссылки профиля
-  container.querySelectorAll('.profile-link').forEach(link => {
-    link.addEventListener('click', function(e) {
-    e.preventDefault();
-    const name = decodeURIComponent(this.getAttribute('data-name'));
-    // Сохраняем имя в localStorage и переходим в режим "Профиль и цели"
-    localStorage.setItem('userProfileViewName', name);
-    selectMode('profile');
-    // После перехода, если профиль не текущего пользователя, показываем только имя и достижения
-    setTimeout(() => {
-      const profileNameInput = document.getElementById('profileName');
-      if (profileNameInput && name) {
-      profileNameInput.value = name;
-      profileNameInput.disabled = true;
-      // Можно скрыть остальные поля, если нужно
-      }
-    }, 100);
-    });
-  });
 
   } catch (error) {
   console.error('Ошибка при загрузке рекордов:', error);
