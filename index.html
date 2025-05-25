@@ -268,7 +268,6 @@ th {
   <div id="sidebar">
     <h2>Меню</h2>
     <ul>
-      <li onclick="selectMode('admin')" id="adminPanelMenu" style="display:none;">🛡️ Панель администратора</li>
       <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
       <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
       <li onclick="selectMode('warmup')">🏋️‍♂️ Разминка на проходку</li>
@@ -301,11 +300,6 @@ th {
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const ADMIN_ID = 'db4a18a6-0bf5-4962-ade4-b2213053100c'; // подставьте свой id
-
-function isAdmin() {
-  return getUserId() === ADMIN_ID;
-}
   </script>
 
   <script>
@@ -723,36 +717,60 @@ const deadliftAttempts = [
           fill: false,
           tension: 0.4,
           pointRadius: 5,
-            pointBackgroundColor: '#2979FF'
+          pointBackgroundColor: '#2979FF'
             },
             {
-            label: name2,
-            data: [max2['Жим лёжа'], max2['Присед'], max2['Становая тяга'], max2['Строгий бицепс']],
-            borderColor: '#E0E0E0',
-            backgroundColor: 'rgba(224,224,224,0.15)',
-            fill: false,
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: '#E0E0E0'
+          label: name2,
+          data: [max2['Жим лёжа'], max2['Присед'], max2['Становая тяга'], max2['Строгий бицепс']],
+          borderColor: '#E0E0E0',
+          backgroundColor: 'rgba(224,224,224,0.15)',
+          fill: false,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#E0E0E0'
             }
-            ]
-          },
-          options: {
-            animation: false,
-            responsive: false,
-            plugins: {
+          ]
+        },
+        options: {
+          animation: false,
+          responsive: false,
+          plugins: {
             legend: { labels: { color: '#E0E0E0' } }
-            },
-            scales: {
+          },
+          scales: {
             x: { ticks: { color: '#E0E0E0' }, grid: { color: '#424242' } },
             y: { ticks: { color: '#E0E0E0' }, grid: { color: '#424242' }, beginAtZero: true }
-            }
           }
-            });
+        }
+          });
 
-            document.getElementById('compareInfo').textContent = '';
+          document.getElementById('compareInfo').textContent = '';
               };
             }
+
+      let target = parseFloat(document.getElementById('weightInput').value);
+      if (isNaN(target) || target < barWeight) {
+        document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
+        return;
+      }
+
+      let platesToUse = (target - barWeight) / 2; // для каждой стороны
+      if (platesToUse < 0) {
+        document.getElementById('warning').textContent = "Вес меньше веса грифа!";
+        return;
+      }
+
+      let plateCount = {};
+      for (const plate of plates) {
+        plateCount[plate] = 0;
+      }
+
+      for (const plate of plates) {
+        while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
+          platesToUse -= plate;
+          plateCount[plate]++;
+        }
+      }
 
       if (platesToUse > 0.001) {
         document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
@@ -886,8 +904,7 @@ const deadliftAttempts = [
   // Построим правую колонку с процентами
   let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
   totalArray.forEach((entry, index) => {
-    // Добавляем к имени ссылку-переход на профиль
-    rightCol += `<p><b>${index + 1}. <a href="#" class="profile-link" data-name="${encodeURIComponent(entry.name)}" style="color:#2979FF;text-decoration:underline;">${entry.name}</a></b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
+    rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
   });
 
   // Выводим в две колонки
