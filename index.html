@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -269,7 +268,7 @@ th {
   <div id="sidebar">
     <h2>Меню</h2>
     <ul>
-      <li class="disabled">🥞 Калькулятор блинов</li>
+      <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
       <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
       <li onclick="selectMode('warmup')">🏋️‍♂️ Разминка на проходку</li>
       <li onclick="selectMode('records')">🏆 Личные рекорды</li>
@@ -443,7 +442,8 @@ if (savedMode) currentMode = savedMode;
     <button id="benchBtn">Рассчитать</button>
     <div id="benchResults"></div>
   `;
-  } else if(currentMode === 'warmup'){
+  document.getElementById('benchBtn').addEventListener('click', calculateBenchMax); // ← добавьте эту строку
+} else if(currentMode === 'warmup'){
     container.innerHTML = `
       <h1>Калькулятор разминки на проходку</h1>
       <p>Выберите упражнение:</p>
@@ -757,8 +757,14 @@ if (savedMode) currentMode = savedMode;
           });
 
           document.getElementById('compareInfo').textContent = '';
-              };
-            }
+        };
+      }
+    }
+    
+    function calculatePlates() {
+      document.getElementById('warning').textContent = "";
+      document.getElementById('result').textContent = "";
+      document.getElementById('resultDetailed').textContent = "";
 
       let target = parseFloat(document.getElementById('weightInput').value);
       if (isNaN(target) || target < barWeight) {
@@ -854,108 +860,88 @@ if (savedMode) currentMode = savedMode;
   }
 }
 
-  // Firestore — загрузить рекорды
-  async function loadRecords() {
+    // Firestore — загрузить рекорды
+    async function loadRecords() {
   const container = document.getElementById('recordsList');
   container.innerHTML = 'Загрузка...';
 
   try {
-  const snapshot = await db.collection('records').get();
-  const records = snapshot.docs.map(doc => doc.data());
+    const snapshot = await db.collection('records').get();
+    const records = snapshot.docs.map(doc => doc.data());
 
-  if (records.length === 0) {
-    container.textContent = 'Пока нет сохранённых рекордов.';
-    return;
-  }
+    if (records.length === 0) {
+      container.textContent = 'Пока нет сохранённых рекордов.';
+      return;
+    }
 
-  // Группируем по типу упражнения
-  const grouped = { bench: [], squat: [], deadlift: [], curl: [] };
-  records.forEach(r => grouped[r.type]?.push(r));
+    // Группируем по типу упражнения
+    const grouped = { bench: [], squat: [], deadlift: [], curl: [] };
+    records.forEach(r => grouped[r.type]?.push(r));
 
-  let leftCol = '';
-  // Сортировка внутри каждого упражнения по весу (по убыванию)
-  for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
+    let leftCol = '';
+    // Сортировка внутри каждого упражнения по весу (по убыванию)
+    for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
   leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
 }</h3>`;
   if (!grouped[key].length) {
-  leftCol += '<p>Нет записей.</p>';
-  continue;
+    leftCol += '<p>Нет записей.</p>';
+    continue;
   }
   // Сортируем по весу
   grouped[key].sort((a, b) => b.weight - a.weight);
   grouped[key].forEach((r, idx) => {
-  const dateStr = new Date(r.date).toLocaleDateString();
-  leftCol += `<p><b>${idx + 1}. ${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+    const dateStr = new Date(r.date).toLocaleDateString();
+    leftCol += `<p><b>${idx + 1}. ${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
   });
 }
 
-  // 💪 Подсчёт сумм по именам с учетом веса тела
-  const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
-  for (const record of records) {
-    const { name, type, weight, bodyWeight } = record;
-    if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
-    if (bodyWeight && bodyWeight > 0) {
-    totals[name].bodyWeight = bodyWeight;
-    }
-    if (weight > (totals[name][type] || 0)) {
-    totals[name][type] = weight;
-    }
-  }
-
-  // Считаем суммы и проценты
-  const totalArray = Object.entries(totals).map(([name, lifts]) => {
-    const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
-    const bodyWeight = lifts.bodyWeight || 1;
-    const percent = (total / bodyWeight) * 100;
-    return { name, total, percent };
-  });
-
-  // Сортировка по проценту (от большего к меньшему)
-  totalArray.sort((a, b) => b.percent - a.percent);
-
-  // Построим правую колонку с процентами
-  let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
-  totalArray.forEach((entry, index) => {
-    rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
-  });
-
-  // Выводим в две колонки
-  container.innerHTML = `
-    <div style="display: flex; flex-direction: row; gap: 40px; justify-content: center; flex-wrap: wrap;">
-    <div style="flex: 1; min-width: 300px;">${leftCol}</div>
-    <div style="flex: 1; min-width: 300px;">${rightCol}</div>
-    </div>
-  `;
-
-  // Навешиваем обработчик на ссылки профиля
-  container.querySelectorAll('.profile-link').forEach(link => {
-    link.addEventListener('click', function(e) {
-    e.preventDefault();
-    const name = decodeURIComponent(this.getAttribute('data-name'));
-    // Сохраняем имя в localStorage и переходим в режим "Профиль и цели"
-    localStorage.setItem('userProfileViewName', name);
-    selectMode('profile');
-    // После перехода, если профиль не текущего пользователя, показываем только имя и достижения
-    setTimeout(() => {
-      const profileNameInput = document.getElementById('profileName');
-      if (profileNameInput && name) {
-      profileNameInput.value = name;
-      profileNameInput.disabled = true;
-      // Можно скрыть остальные поля, если нужно
+    // 💪 Подсчёт сумм по именам с учетом веса тела
+    const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
+    for (const record of records) {
+      const { name, type, weight, bodyWeight } = record;
+      if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
+      if (bodyWeight && bodyWeight > 0) {
+        totals[name].bodyWeight = bodyWeight;
       }
-    }, 100);
+      if (weight > (totals[name][type] || 0)) {
+        totals[name][type] = weight;
+      }
+    }
+
+    // Считаем суммы и проценты
+    const totalArray = Object.entries(totals).map(([name, lifts]) => {
+      const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
+      const bodyWeight = lifts.bodyWeight || 1;
+      const percent = (total / bodyWeight) * 100;
+      return { name, total, percent };
     });
-  });
+
+    // Сортировка по проценту (от большего к меньшему)
+    totalArray.sort((a, b) => b.percent - a.percent);
+
+    // Построим правую колонку с процентами
+    let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
+    totalArray.forEach((entry, index) => {
+      rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
+    });
+
+    // Выводим в две колонки
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: row; gap: 40px; justify-content: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">${leftCol}</div>
+        <div style="flex: 1; min-width: 300px;">${rightCol}</div>
+      </div>
+    `;
 
   } catch (error) {
-  console.error('Ошибка при загрузке рекордов:', error);
-  container.textContent = 'Ошибка при загрузке данных.';
+    console.error('Ошибка при загрузке рекордов:', error);
+    container.textContent = 'Ошибка при загрузке данных.';
   }
 }
 
 
-  // Инициализация страницы
-  selectMode(currentMode);
+    // Инициализация страницы
+    selectMode(currentMode);
   </script>
 
   </body>
