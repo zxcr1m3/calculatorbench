@@ -268,6 +268,7 @@ th {
   <div id="sidebar">
     <h2>Меню</h2>
     <ul>
+      <li onclick="selectMode('admin')" id="adminPanelMenu" style="display:none;">🛡️ Панель администратора</li>
       <li onclick="selectMode('plates')">🥞 Калькулятор блинов</li>
       <li onclick="selectMode('bench')">💪 Разовый жим лёжа</li>
       <li onclick="selectMode('warmup')">🏋️‍♂️ Разминка на проходку</li>
@@ -276,7 +277,6 @@ th {
       <li onclick="selectMode('compare')">📊 Сравнение с другими</li>
       <li class="disabled">📈 Прогресс силовых</li>
       <li class="disabled">📅 Календарь тренировок</li>
-      <li class="disabled">🧑‍💼 Профиль и цели</li>
       <li class="disabled">🏅 Достижения</li>
       <li class="disabled">🧪 Подбор добавок</li>
     </ul> 
@@ -336,6 +336,16 @@ th {
           avatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(getUserName());
         }
         localStorage.setItem('chatUserAvatar', avatar);
+      }
+      return avatar;
+    }
+
+    // --- Админ-функции ---
+    const ADMIN_ID = 'db4a18a6-0bf5-4962-ade4-b2213053100c'; // подставьте свой id
+
+    function isAdmin() {
+      return getUserId() === ADMIN_ID;
+    }
       }
       return avatar;
     }
@@ -718,66 +728,36 @@ const deadliftAttempts = [
           fill: false,
           tension: 0.4,
           pointRadius: 5,
-          pointBackgroundColor: '#2979FF'
+            pointBackgroundColor: '#2979FF'
             },
             {
-          label: name2,
-          data: [max2['Жим лёжа'], max2['Присед'], max2['Становая тяга'], max2['Строгий бицепс']],
-          borderColor: '#E0E0E0',
-          backgroundColor: 'rgba(224,224,224,0.15)',
-          fill: false,
-          tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: '#E0E0E0'
+            label: name2,
+            data: [max2['Жим лёжа'], max2['Присед'], max2['Становая тяга'], max2['Строгий бицепс']],
+            borderColor: '#E0E0E0',
+            backgroundColor: 'rgba(224,224,224,0.15)',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#E0E0E0'
             }
-          ]
-        },
-        options: {
-          animation: false,
-          responsive: false,
-          plugins: {
-            legend: { labels: { color: '#E0E0E0' } }
+            ]
           },
-          scales: {
+          options: {
+            animation: false,
+            responsive: false,
+            plugins: {
+            legend: { labels: { color: '#E0E0E0' } }
+            },
+            scales: {
             x: { ticks: { color: '#E0E0E0' }, grid: { color: '#424242' } },
             y: { ticks: { color: '#E0E0E0' }, grid: { color: '#424242' }, beginAtZero: true }
+            }
           }
-        }
-          });
+            });
 
-          document.getElementById('compareInfo').textContent = '';
-        };
-      }
-    }
-    
-    function calculatePlates() {
-      document.getElementById('warning').textContent = "";
-      document.getElementById('result').textContent = "";
-      document.getElementById('resultDetailed').textContent = "";
-
-      let target = parseFloat(document.getElementById('weightInput').value);
-      if (isNaN(target) || target < barWeight) {
-        document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
-        return;
-      }
-
-      let platesToUse = (target - barWeight) / 2; // для каждой стороны
-      if (platesToUse < 0) {
-        document.getElementById('warning').textContent = "Вес меньше веса грифа!";
-        return;
-      }
-
-      let plateCount = {};
-      for (const plate of plates) {
-        plateCount[plate] = 0;
-      }
-
-      for (const plate of plates) {
-        while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
-          platesToUse -= plate;
-          plateCount[plate]++;
-        }
-      }
+            document.getElementById('compareInfo').textContent = '';
+              };
+            }
 
       if (platesToUse > 0.001) {
         document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
@@ -849,88 +829,109 @@ const deadliftAttempts = [
   }
 }
 
-    // Firestore — загрузить рекорды
-    async function loadRecords() {
+  // Firestore — загрузить рекорды
+  async function loadRecords() {
   const container = document.getElementById('recordsList');
   container.innerHTML = 'Загрузка...';
 
   try {
-    const snapshot = await db.collection('records').get();
-    const records = snapshot.docs.map(doc => doc.data());
+  const snapshot = await db.collection('records').get();
+  const records = snapshot.docs.map(doc => doc.data());
 
-    if (records.length === 0) {
-      container.textContent = 'Пока нет сохранённых рекордов.';
-      return;
-    }
+  if (records.length === 0) {
+    container.textContent = 'Пока нет сохранённых рекордов.';
+    return;
+  }
 
-    // Группируем по типу упражнения
-    const grouped = { bench: [], squat: [], deadlift: [], curl: [] };
-    records.forEach(r => grouped[r.type]?.push(r));
+  // Группируем по типу упражнения
+  const grouped = { bench: [], squat: [], deadlift: [], curl: [] };
+  records.forEach(r => grouped[r.type]?.push(r));
 
-    let leftCol = '';
-    // Сортировка внутри каждого упражнения по весу (по убыванию)
-    for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
+  let leftCol = '';
+  // Сортировка внутри каждого упражнения по весу (по убыванию)
+  for (const key of ['bench', 'squat', 'deadlift', 'curl']) {
   leftCol += `<h3>${key === 'bench' ? 'Жим лёжа' : key === 'squat' ? 'Присед' : key === 'deadlift' ? 'Становая тяга' : key === 'curl' ? 'Строгий бицепс' : key
 }</h3>`;
   if (!grouped[key].length) {
-    leftCol += '<p>Нет записей.</p>';
-    continue;
+  leftCol += '<p>Нет записей.</p>';
+  continue;
   }
   // Сортируем по весу
   grouped[key].sort((a, b) => b.weight - a.weight);
   grouped[key].forEach((r, idx) => {
-    const dateStr = new Date(r.date).toLocaleDateString();
-    leftCol += `<p><b>${idx + 1}. ${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
+  const dateStr = new Date(r.date).toLocaleDateString();
+  leftCol += `<p><b>${idx + 1}. ${r.name}</b>: ${r.weight} кг (дата: ${dateStr})</p>`;
   });
 }
 
-    // 💪 Подсчёт сумм по именам с учетом веса тела
-    const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
-    for (const record of records) {
-      const { name, type, weight, bodyWeight } = record;
-      if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
-      if (bodyWeight && bodyWeight > 0) {
-        totals[name].bodyWeight = bodyWeight;
-      }
-      if (weight > (totals[name][type] || 0)) {
-        totals[name][type] = weight;
-      }
+  // 💪 Подсчёт сумм по именам с учетом веса тела
+  const totals = {}; // name -> {bench, squat, deadlift, bodyWeight}
+  for (const record of records) {
+    const { name, type, weight, bodyWeight } = record;
+    if (!totals[name]) totals[name] = { bench: 0, squat: 0, deadlift: 0, bodyWeight: 0 };
+    if (bodyWeight && bodyWeight > 0) {
+    totals[name].bodyWeight = bodyWeight;
     }
+    if (weight > (totals[name][type] || 0)) {
+    totals[name][type] = weight;
+    }
+  }
 
-    // Считаем суммы и проценты
-    const totalArray = Object.entries(totals).map(([name, lifts]) => {
-      const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
-      const bodyWeight = lifts.bodyWeight || 1;
-      const percent = (total / bodyWeight) * 100;
-      return { name, total, percent };
+  // Считаем суммы и проценты
+  const totalArray = Object.entries(totals).map(([name, lifts]) => {
+    const total = (lifts.bench || 0) + (lifts.squat || 0) + (lifts.deadlift || 0);
+    const bodyWeight = lifts.bodyWeight || 1;
+    const percent = (total / bodyWeight) * 100;
+    return { name, total, percent };
+  });
+
+  // Сортировка по проценту (от большего к меньшему)
+  totalArray.sort((a, b) => b.percent - a.percent);
+
+  // Построим правую колонку с процентами
+  let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
+  totalArray.forEach((entry, index) => {
+    // Добавляем к имени ссылку-переход на профиль
+    rightCol += `<p><b>${index + 1}. <a href="#" class="profile-link" data-name="${encodeURIComponent(entry.name)}" style="color:#2979FF;text-decoration:underline;">${entry.name}</a></b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
+  });
+
+  // Выводим в две колонки
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: row; gap: 40px; justify-content: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 300px;">${leftCol}</div>
+    <div style="flex: 1; min-width: 300px;">${rightCol}</div>
+    </div>
+  `;
+
+  // Навешиваем обработчик на ссылки профиля
+  container.querySelectorAll('.profile-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+    e.preventDefault();
+    const name = decodeURIComponent(this.getAttribute('data-name'));
+    // Сохраняем имя в localStorage и переходим в режим "Профиль и цели"
+    localStorage.setItem('userProfileViewName', name);
+    selectMode('profile');
+    // После перехода, если профиль не текущего пользователя, показываем только имя и достижения
+    setTimeout(() => {
+      const profileNameInput = document.getElementById('profileName');
+      if (profileNameInput && name) {
+      profileNameInput.value = name;
+      profileNameInput.disabled = true;
+      // Можно скрыть остальные поля, если нужно
+      }
+    }, 100);
     });
-
-    // Сортировка по проценту (от большего к меньшему)
-    totalArray.sort((a, b) => b.percent - a.percent);
-
-    // Построим правую колонку с процентами
-    let rightCol = `<h3>🏆 Сумма троеборья</h3>`;
-    totalArray.forEach((entry, index) => {
-      rightCol += `<p><b>${index + 1}. ${entry.name}</b>: ${entry.total} кг (${entry.percent.toFixed(1)}% от веса тела)</p>`;
-    });
-
-    // Выводим в две колонки
-    container.innerHTML = `
-      <div style="display: flex; flex-direction: row; gap: 40px; justify-content: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 300px;">${leftCol}</div>
-        <div style="flex: 1; min-width: 300px;">${rightCol}</div>
-      </div>
-    `;
+  });
 
   } catch (error) {
-    console.error('Ошибка при загрузке рекордов:', error);
-    container.textContent = 'Ошибка при загрузке данных.';
+  console.error('Ошибка при загрузке рекордов:', error);
+  container.textContent = 'Ошибка при загрузке данных.';
   }
 }
 
 
-    // Инициализация страницы
-    selectMode(currentMode);
+  // Инициализация страницы
+  selectMode(currentMode);
   </script>
 
   </body>
