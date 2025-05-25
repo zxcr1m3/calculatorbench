@@ -301,6 +301,11 @@ th {
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const ADMIN_ID = 'db4a18a6-0bf5-4962-ade4-b2213053100c'; // подставьте свой id
+
+function isAdmin() {
+  return getUserId() === ADMIN_ID;
+}
   </script>
 
   <script>
@@ -336,16 +341,6 @@ th {
           avatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(getUserName());
         }
         localStorage.setItem('chatUserAvatar', avatar);
-      }
-      return avatar;
-    }
-
-    // --- Админ-функции ---
-    const ADMIN_ID = 'db4a18a6-0bf5-4962-ade4-b2213053100c'; // подставьте свой id
-
-    function isAdmin() {
-      return getUserId() === ADMIN_ID;
-    }
       }
       return avatar;
     }
