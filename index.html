@@ -762,47 +762,49 @@ if (savedMode) currentMode = savedMode;
     }
     
     function calculatePlates() {
-      document.getElementById('warning').textContent = "";
-      document.getElementById('result').textContent = "";
-      document.getElementById('resultDetailed').textContent = "";
+  document.getElementById('warning').textContent = "";
+  document.getElementById('result').textContent = "";
+  document.getElementById('resultDetailed').textContent = "";
 
-      let target = parseFloat(document.getElementById('weightInput').value);
-      if (isNaN(target) || target < barWeight) {
-        document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
-        return;
-      }
+  let target = parseFloat(document.getElementById('weightInput').value);
+  if (isNaN(target) || target < barWeight) {
+    document.getElementById('warning').textContent = `Минимальный вес с учётом грифа: ${barWeight} кг`;
+    return;
+  }
 
-      let platesToUse = (target - barWeight) / 2; // для каждой стороны
-      if (platesToUse < 0) {
-        document.getElementById('warning').textContent = "Вес меньше веса грифа!";
-        return;
-      }
+  let platesToUse = (target - barWeight) / 2; // для каждой стороны
+  if (platesToUse < 0) {
+    document.getElementById('warning').textContent = "Вес меньше веса грифа!";
+    return;
+  }
 
-      let plateCount = {};
-      for (const plate of plates) {
-        plateCount[plate] = 0;
-      }
+  let plateCount = {};
+  for (const plate of plates) {
+    plateCount[plate] = 0;
+  }
 
-      for (const plate of plates) {
-        while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
-          platesToUse -= plate;
-          plateCount[plate]++;
-        }
-      }
-
-      if (platesToUse > 0.001) {
-        document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
-      }
-
-      let result = Object.entries(plateCount)
-        .filter(([_, c]) => c > 0)
-        .map(([p, c]) => `${c} x ${p} кг`)
-        .join(", ");
-
-      if (!result) result = "Только гриф — " + barWeight + " кг";
-
-      document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
+  for (const plate of plates) {
+    while (platesToUse >= plate - 0.001 && plateCount[plate] < maxPlatesPerType) {
+      platesToUse -= plate;
+      plateCount[plate]++;
     }
+  }
+
+  if (platesToUse > 0.001) {
+    document.getElementById('warning').textContent = "Невозможно точно набрать заданный вес блинами.";
+  }
+
+  // Сортируем по убыванию веса блина
+  let result = Object.entries(plateCount)
+    .filter(([_, c]) => c > 0)
+    .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+    .map(([p, c]) => `${c} x ${p} кг`)
+    .join(", ");
+
+  if (!result) result = "Только гриф — " + barWeight + " кг";
+
+  document.getElementById('result').textContent = `Нужно надеть блины с каждой стороны:\n${result}`;
+}
 
     // Формулы расчёта 1ПМ в жиме лёжа
     function calculateBenchMax() {
